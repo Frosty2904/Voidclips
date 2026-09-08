@@ -1,0 +1,686 @@
+<Window x:Class="VoidClip.Views.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStyle="None" ResizeMode="CanResize" ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner" Width="920" Height="700"
+        MinWidth="820" MinHeight="600"
+        Background="Transparent" AllowsTransparency="True"
+        TextOptions.TextFormattingMode="Display">
+
+    <Window.Resources>
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="Background" Value="#4D0B0813"/>
+            <Setter Property="BorderBrush" Value="{StaticResource StrokeSoft}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="16,14"/>
+            <Setter Property="Margin" Value="0,0,0,11"/>
+        </Style>
+        <Style x:Key="RowTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="Foreground" Value="{StaticResource Text}"/>
+        </Style>
+        <Style x:Key="RowHint" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="{StaticResource TextMute}"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Margin" Value="0,3,0,0"/>
+            <Setter Property="MaxWidth" Value="420"/>
+            <!-- without this, MaxWidth inside a Stretch parent centres the text block -->
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+        </Style>
+    </Window.Resources>
+
+    <Border CornerRadius="13" Background="{StaticResource AppBackdrop}" BorderBrush="{StaticResource Purple}"
+            BorderThickness="1" Effect="{StaticResource PanelShadow}" Margin="12">
+        <Grid>
+            <Rectangle Fill="{StaticResource PurpleBloom}" Opacity="0.45" IsHitTestVisible="False"
+                       RadiusX="13" RadiusY="13" HorizontalAlignment="Left" Width="520"/>
+            <Rectangle Fill="{StaticResource RedBloom}" Opacity="0.4" IsHitTestVisible="False"
+                       RadiusX="13" RadiusY="13" HorizontalAlignment="Right" Width="480"
+                       VerticalAlignment="Bottom" Height="400"/>
+
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- header -->
+                <Border Grid.Row="0" MouseLeftButtonDown="Header_Drag" Background="Transparent" Padding="22,16,14,10">
+                    <Grid>
+                        <StackPanel>
+                            <Border Height="3" CornerRadius="2" Background="{StaticResource AccentGradientWide}"
+                                    HorizontalAlignment="Left" Width="46" Margin="0,0,0,10"/>
+                            <TextBlock Text="Settings" Style="{StaticResource H1}"/>
+                        </StackPanel>
+                        <Button Style="{StaticResource TitleBarButton}" Content="&#xE8BB;" HorizontalAlignment="Right"
+                                VerticalAlignment="Top" Click="Close_Click"/>
+                    </Grid>
+                </Border>
+
+                <!-- tabs -->
+                <TabControl Grid.Row="1" x:Name="Tabs" TabStripPlacement="Left" Background="Transparent"
+                            BorderThickness="0">
+                    <TabControl.Template>
+                        <ControlTemplate TargetType="TabControl">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="178"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0" Background="#59100C1B" BorderBrush="{StaticResource StrokeSoft}"
+                                        BorderThickness="0,1,1,0">
+                                    <StackPanel Margin="16,16,10,0">
+                                        <TabPanel IsItemsHost="True"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Grid.Column="1" BorderBrush="{StaticResource StrokeSoft}" BorderThickness="0,1,0,0">
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24,20,14,20">
+                                        <ContentPresenter ContentSource="SelectedContent"/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Grid>
+                        </ControlTemplate>
+                    </TabControl.Template>
+
+                    <!-- ═══════════════ CAPTURE ═══════════════ -->
+                    <TabItem Header="Capture" Style="{StaticResource VerticalTabItem}">
+                        <StackPanel>
+                            <TextBlock Text="WHAT VOIDCLIP LISTENS TO" Style="{StaticResource SectionLabel}"/>
+
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="230"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                                            <TextBlock Text="Capture source" Style="{StaticResource RowTitle}"/>
+                                            <TextBlock Style="{StaticResource RowHint}"
+                                                       Text="Loopback records whatever a playback device is putting out — that's your friends in Discord. Use an input device instead if you route voice through a virtual cable."/>
+                                        </StackPanel>
+                                        <ComboBox Grid.Column="1" x:Name="ModeBox" VerticalAlignment="Top"
+                                                  SelectionChanged="Mode_Changed">
+                                            <ComboBoxItem Content="Loopback (speakers / headset)"/>
+                                            <ComboBoxItem Content="Input device (mic / cable)"/>
+                                        </ComboBox>
+                                    </Grid>
+
+                                    <Border Height="1" Background="{StaticResource StrokeSoft}" Margin="0,14"/>
+
+                                    <Grid x:Name="LoopbackRow">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="230"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                                            <TextBlock Text="Playback device to record" Style="{StaticResource RowTitle}"/>
+                                            <TextBlock Style="{StaticResource RowHint}"
+                                                       Text="Pick the device Discord actually plays through — usually your headphones."/>
+                                        </StackPanel>
+                                        <ComboBox Grid.Column="1" x:Name="LoopbackBox" VerticalAlignment="Top"/>
+                                    </Grid>
+
+                                    <Grid x:Name="InputRow" Visibility="Collapsed">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="230"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                                            <TextBlock Text="Recording device" Style="{StaticResource RowTitle}"/>
+                                            <TextBlock Style="{StaticResource RowHint}"
+                                                       Text="A microphone, or the output side of a virtual cable."/>
+                                        </StackPanel>
+                                        <ComboBox Grid.Column="1" x:Name="InputBox" VerticalAlignment="Top"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="230"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                                            <TextBlock Text="How far back you can clip" Style="{StaticResource RowTitle}"/>
+                                            <TextBlock Style="{StaticResource RowHint}"
+                                                       Text="The rolling buffer held in memory. Longer means you can reach further back, at about 11 MB per minute."/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1">
+                                            <Slider x:Name="BufferSlider" Minimum="15" Maximum="900"
+                                                    ValueChanged="Buffer_Changed"/>
+                                            <TextBlock x:Name="BufferLabel" Style="{StaticResource RowHint}"
+                                                       HorizontalAlignment="Right" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <Border Height="1" Background="{StaticResource StrokeSoft}" Margin="0,14"/>
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="230"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                                            <TextBlock Text="Capture gain" Style="{StaticResource RowTitle}"/>
+                                            <TextBlock Style="{StaticResource RowHint}"
+                                                       Text="Boost quiet sources before they hit the buffer."/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1">
+                                            <Slider x:Name="GainSlider" Minimum="0.1" Maximum="4"
+                                                    ValueChanged="Gain_Changed"/>
+                                            <TextBlock x:Name="GainLabel" Style="{StaticResource RowHint}"
+                                                       HorizontalAlignment="Right" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <CheckBox x:Name="AutoStartChk" Content="Start capturing as soon as VoidClip opens"/>
+                                    <TextBlock x:Name="CaptureStatus" Style="{StaticResource RowHint}" Margin="0,12,0,0"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                        <Button Style="{StaticResource AccentButton}" Content="Restart capture"
+                                                Padding="16,8" Click="RestartCapture_Click"/>
+                                        <Button Style="{StaticResource GhostButton}" Content="Clear buffer"
+                                                Margin="8,0,0,0" Padding="16,8" Click="ClearBuffer_Click"/>
+                                        <Button Style="{StaticResource DangerButton}" Content="Stop capture"
+                                                Margin="8,0,0,0" Padding="16,8" Click="StopCapture_Click"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </TabItem>
+
+                    <!-- ═══════════════ CLIPPING ═══════════════ -->
+                    <TabItem Header="Clipping" Style="{StaticResource VerticalTabItem}">
+                        <StackPanel>
+                            <TextBlock Text="WHAT HAPPENS WHEN YOU HIT CLIP" Style="{StaticResource SectionLabel}"/>
+
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="230"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                                            <TextBlock Text="Default clip length" Style="{StaticResource RowTitle}"/>
+                                            <TextBlock Style="{StaticResource RowHint}"
+                                                       Text="How much of the recent past the main clip button grabs."/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1">
+                                            <Slider x:Name="ClipLenSlider" Minimum="1" Maximum="120"
+                                                    ValueChanged="ClipLen_Changed"/>
+                                            <TextBlock x:Name="ClipLenLabel" Style="{StaticResource RowHint}"
+                                                       HorizontalAlignment="Right" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <Border Height="1" Background="{StaticResource StrokeSoft}" Margin="0,14"/>
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="230"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                                            <TextBlock Text="Quick-length buttons" Style="{StaticResource RowTitle}"/>
+                                            <TextBlock Style="{StaticResource RowHint}"
+                                                       Text="Seconds, comma separated. These become the buttons next to CLIP and the Ctrl+Alt+1…5 hotkeys."/>
+                                        </StackPanel>
+                                        <TextBox Grid.Column="1" x:Name="QuickBox" VerticalAlignment="Top" Height="34"/>
+                                    </Grid>
+
+                                    <Border Height="1" Background="{StaticResource StrokeSoft}" Margin="0,14"/>
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="230"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                                            <TextBlock Text="Reaction offset" Style="{StaticResource RowTitle}"/>
+                                            <TextBlock Style="{StaticResource RowHint}"
+                                                       Text="Drops this much off the end of every clip, because you always press the key a moment after the funny part."/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1">
+                                            <Slider x:Name="OffsetSlider" Minimum="0" Maximum="3000"
+                                                    ValueChanged="Offset_Changed"/>
+                                            <TextBlock x:Name="OffsetLabel" Style="{StaticResource RowHint}"
+                                                       HorizontalAlignment="Right" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="AUTOMATIC CLEAN-UP" Style="{StaticResource SectionLabel}" Margin="0,8,0,8"/>
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <CheckBox x:Name="NormaliseChk" Content="Normalise every new clip"/>
+                                    <Grid Margin="26,9,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="230"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Target peak" Style="{StaticResource RowHint}"
+                                                   Margin="0" VerticalAlignment="Center"/>
+                                        <StackPanel Grid.Column="1">
+                                            <Slider x:Name="NormSlider" Minimum="-18" Maximum="0"
+                                                    ValueChanged="Norm_Changed"/>
+                                            <TextBlock x:Name="NormLabel" Style="{StaticResource RowHint}"
+                                                       HorizontalAlignment="Right" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <Border Height="1" Background="{StaticResource StrokeSoft}" Margin="0,14"/>
+
+                                    <CheckBox x:Name="TrimChk" Content="Trim silence from both ends"/>
+                                    <Grid Margin="26,9,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="230"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Silence threshold" Style="{StaticResource RowHint}"
+                                                   Margin="0" VerticalAlignment="Center"/>
+                                        <StackPanel Grid.Column="1">
+                                            <Slider x:Name="SilenceSlider" Minimum="-80" Maximum="-10"
+                                                    ValueChanged="Silence_Changed"/>
+                                            <TextBlock x:Name="SilenceLabel" Style="{StaticResource RowHint}"
+                                                       HorizontalAlignment="Right" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <Border Height="1" Background="{StaticResource StrokeSoft}" Margin="0,14"/>
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="230"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Fade in" Style="{StaticResource RowTitle}"
+                                                   VerticalAlignment="Center"/>
+                                        <StackPanel Grid.Column="1">
+                                            <Slider x:Name="FadeInSlider" Minimum="0" Maximum="500"
+                                                    ValueChanged="Fades_Changed"/>
+                                            <TextBlock x:Name="FadeInLabel" Style="{StaticResource RowHint}"
+                                                       HorizontalAlignment="Right" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <Grid Margin="0,10,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="230"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Fade out" Style="{StaticResource RowTitle}"
+                                                   VerticalAlignment="Center"/>
+                                        <StackPanel Grid.Column="1">
+                                            <Slider x:Name="FadeOutSlider" Minimum="0" Maximum="2000"
+                                                    ValueChanged="Fades_Changed"/>
+                                            <TextBlock x:Name="FadeOutLabel" Style="{StaticResource RowHint}"
+                                                       HorizontalAlignment="Right" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="NAMING &amp; FILING" Style="{StaticResource SectionLabel}" Margin="0,8,0,8"/>
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="230"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                                            <TextBlock Text="Name template" Style="{StaticResource RowTitle}"/>
+                                            <TextBlock Style="{StaticResource RowHint}"
+                                                       Text="Placeholders: {n} counter, {date}, {time}, {datetime}."/>
+                                        </StackPanel>
+                                        <TextBox Grid.Column="1" x:Name="TemplateBox" VerticalAlignment="Top" Height="34"/>
+                                    </Grid>
+
+                                    <Border Height="1" Background="{StaticResource StrokeSoft}" Margin="0,14"/>
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="230"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                                            <TextBlock Text="Default category" Style="{StaticResource RowTitle}"/>
+                                            <TextBlock Style="{StaticResource RowHint}"
+                                                       Text="New clips land here — unless you're already filtered to a category, which wins."/>
+                                        </StackPanel>
+                                        <ComboBox Grid.Column="1" x:Name="DefaultCatBox" VerticalAlignment="Top"/>
+                                    </Grid>
+
+                                    <Border Height="1" Background="{StaticResource StrokeSoft}" Margin="0,14"/>
+
+                                    <CheckBox x:Name="OpenEditorChk" Content="Open the editor right after clipping"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </TabItem>
+
+                    <!-- ═══════════════ PLAYBACK ═══════════════ -->
+                    <TabItem Header="Playback" Style="{StaticResource VerticalTabItem}">
+                        <StackPanel>
+                            <TextBlock Text="WHERE CLIPS COME OUT" Style="{StaticResource SectionLabel}"/>
+
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="230"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                                            <TextBlock Text="Main output" Style="{StaticResource RowTitle}"/>
+                                            <TextBlock Style="{StaticResource RowHint}"
+                                                       Text="Point this at a virtual audio cable, then set that cable as your microphone in Discord. That's what makes clips play back into the call."/>
+                                        </StackPanel>
+                                        <ComboBox Grid.Column="1" x:Name="OutputBox" VerticalAlignment="Top"/>
+                                    </Grid>
+
+                                    <Border Height="1" Background="{StaticResource StrokeSoft}" Margin="0,14"/>
+
+                                    <CheckBox x:Name="MonitorChk" Content="Also play to a monitor device (so you hear it too)"
+                                              Click="Monitor_Changed"/>
+                                    <Grid Margin="26,10,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="230"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Monitor device" Style="{StaticResource RowHint}"
+                                                   Margin="0" VerticalAlignment="Center"/>
+                                        <ComboBox Grid.Column="1" x:Name="MonitorBox" VerticalAlignment="Top"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="230"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Main volume" Style="{StaticResource RowTitle}"
+                                                   VerticalAlignment="Center"/>
+                                        <StackPanel Grid.Column="1">
+                                            <Slider x:Name="MasterSlider" Minimum="0" Maximum="1.5"
+                                                    ValueChanged="Volumes_Changed"/>
+                                            <TextBlock x:Name="MasterLabel" Style="{StaticResource RowHint}"
+                                                       HorizontalAlignment="Right" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <Grid Margin="0,12,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="230"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Monitor volume" Style="{StaticResource RowTitle}"
+                                                   VerticalAlignment="Center"/>
+                                        <StackPanel Grid.Column="1">
+                                            <Slider x:Name="MonitorSlider" Minimum="0" Maximum="1.5"
+                                                    ValueChanged="Volumes_Changed"/>
+                                            <TextBlock x:Name="MonitorLabel" Style="{StaticResource RowHint}"
+                                                       HorizontalAlignment="Right" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+                                    <Grid Margin="0,12,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="230"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                                            <TextBlock Text="Output latency" Style="{StaticResource RowTitle}"/>
+                                            <TextBlock Style="{StaticResource RowHint}"
+                                                       Text="Lower fires faster; too low can crackle. 60 ms suits most setups."/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1">
+                                            <Slider x:Name="LatencySlider" Minimum="20" Maximum="300"
+                                                    ValueChanged="Latency_Changed"/>
+                                            <TextBlock x:Name="LatencyLabel" Style="{StaticResource RowHint}"
+                                                       HorizontalAlignment="Right" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <CheckBox x:Name="OverlapChk" Content="Let clips overlap each other"/>
+                                    <CheckBox x:Name="StopPrevChk" Content="Stop everything else when a new clip fires"
+                                              Margin="0,10,0,0"/>
+                                    <CheckBox x:Name="RetriggerChk" Content="Re-pressing a pad restarts it from the top"
+                                              Margin="0,10,0,0"/>
+                                    <TextBlock x:Name="OutputStatus" Style="{StaticResource RowHint}" Margin="0,13,0,0"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </TabItem>
+
+                    <!-- ═══════════════ HOTKEYS ═══════════════ -->
+                    <TabItem Header="Hotkeys" Style="{StaticResource VerticalTabItem}">
+                        <StackPanel>
+                            <TextBlock Text="GLOBAL SHORTCUTS" Style="{StaticResource SectionLabel}"/>
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <CheckBox x:Name="HotkeysChk" Content="Global hotkeys enabled" Click="HotkeysEnabled_Changed"/>
+                                    <TextBlock Style="{StaticResource RowHint}" Margin="26,4,0,0"
+                                               Text="These fire anywhere in Windows, including while a game has focus."/>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel x:Name="HotkeyRows"/>
+                            </Border>
+                            <TextBlock Style="{StaticResource RowHint}" MaxWidth="600"
+                                       Text="Individual pads get their own hotkeys too — right-click any clip on the board and choose Hotkey ▸ Assign."/>
+                        </StackPanel>
+                    </TabItem>
+
+                    <!-- ═══════════════ EXPORT ═══════════════ -->
+                    <TabItem Header="Export" Style="{StaticResource VerticalTabItem}">
+                        <StackPanel>
+                            <TextBlock Text="FILE OUTPUT" Style="{StaticResource SectionLabel}"/>
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="230"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                                            <TextBlock Text="Default format" Style="{StaticResource RowTitle}"/>
+                                            <TextBlock Style="{StaticResource RowHint}"
+                                                       Text="MP3 goes anywhere; OGG is what most soundboards and game engines prefer."/>
+                                        </StackPanel>
+                                        <ComboBox Grid.Column="1" x:Name="FormatBox" VerticalAlignment="Top">
+                                            <ComboBoxItem Content="WAV — uncompressed"/>
+                                            <ComboBoxItem Content="MP3"/>
+                                            <ComboBoxItem Content="OGG Vorbis"/>
+                                        </ComboBox>
+                                    </Grid>
+
+                                    <Border Height="1" Background="{StaticResource StrokeSoft}" Margin="0,14"/>
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="230"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="MP3 bitrate" Style="{StaticResource RowTitle}"
+                                                   VerticalAlignment="Center"/>
+                                        <ComboBox Grid.Column="1" x:Name="BitrateBox" VerticalAlignment="Top">
+                                            <ComboBoxItem Content="96 kbps"/>
+                                            <ComboBoxItem Content="128 kbps"/>
+                                            <ComboBoxItem Content="160 kbps"/>
+                                            <ComboBoxItem Content="192 kbps"/>
+                                            <ComboBoxItem Content="256 kbps"/>
+                                            <ComboBoxItem Content="320 kbps"/>
+                                        </ComboBox>
+                                    </Grid>
+
+                                    <Grid Margin="0,12,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="230"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="OGG quality" Style="{StaticResource RowTitle}"
+                                                   VerticalAlignment="Center"/>
+                                        <StackPanel Grid.Column="1">
+                                            <Slider x:Name="OggSlider" Minimum="0.05" Maximum="1"
+                                                    ValueChanged="Ogg_Changed"/>
+                                            <TextBlock x:Name="OggLabel" Style="{StaticResource RowHint}"
+                                                       HorizontalAlignment="Right" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock Text="Export folder" Style="{StaticResource RowTitle}"/>
+                                    <TextBlock x:Name="ExportPathLabel" Style="{StaticResource RowHint}" MaxWidth="9999"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,11,0,0">
+                                        <Button Style="{StaticResource GhostButton}" Content="Change…" Padding="15,8"
+                                                Click="ChangeExportFolder_Click"/>
+                                        <Button Style="{StaticResource GhostButton}" Content="Open" Margin="8,0,0,0"
+                                                Padding="15,8" Click="OpenExportFolder_Click"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="RevealChk" Content="Show the file in Explorer after exporting"
+                                              Margin="0,14,0,0"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </TabItem>
+
+                    <!-- ═══════════════ INTERFACE ═══════════════ -->
+                    <TabItem Header="Interface" Style="{StaticResource VerticalTabItem}">
+                        <StackPanel>
+                            <TextBlock Text="THE BOARD" Style="{StaticResource SectionLabel}"/>
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="230"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="Pad size" Style="{StaticResource RowTitle}"
+                                                   VerticalAlignment="Center"/>
+                                        <ComboBox Grid.Column="1" x:Name="PadSizeBox" VerticalAlignment="Top">
+                                            <ComboBoxItem Content="Small"/>
+                                            <ComboBoxItem Content="Medium"/>
+                                            <ComboBoxItem Content="Large"/>
+                                        </ComboBox>
+                                    </Grid>
+                                    <CheckBox x:Name="WaveChk" Content="Show waveforms on pads" Margin="0,14,0,0"/>
+                                    <CheckBox x:Name="AnimChk" Content="Animations" Margin="0,10,0,0"/>
+                                    <CheckBox x:Name="ToastChk" Content="Pop a confirmation when a clip is captured"
+                                              Margin="0,10,0,0"/>
+                                    <CheckBox x:Name="ConfirmChk" Content="Ask before deleting a clip" Margin="0,10,0,0"/>
+
+                                    <Grid Margin="0,16,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="230"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                                            <TextBlock Text="Background glow" Style="{StaticResource RowTitle}"/>
+                                            <TextBlock Style="{StaticResource RowHint}"
+                                                       Text="Turn the purple and red bloom up or all the way off."/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1">
+                                            <Slider x:Name="BackdropSlider" Minimum="0" Maximum="1.5"
+                                                    ValueChanged="Backdrop_Changed"/>
+                                            <TextBlock x:Name="BackdropLabel" Style="{StaticResource RowHint}"
+                                                       HorizontalAlignment="Right" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="WINDOW BEHAVIOUR" Style="{StaticResource SectionLabel}" Margin="0,8,0,8"/>
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <CheckBox x:Name="TopChk" Content="Always on top"/>
+                                    <CheckBox x:Name="TrayChk" Content="Minimise to the system tray" Margin="0,10,0,0"/>
+                                    <CheckBox x:Name="StartMinChk" Content="Start minimised" Margin="0,10,0,0"/>
+                                    <CheckBox x:Name="StartupChk" Content="Launch VoidClip when Windows starts"
+                                              Margin="0,10,0,0"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </TabItem>
+
+                    <!-- ═══════════════ STORAGE ═══════════════ -->
+                    <TabItem Header="Storage" Style="{StaticResource VerticalTabItem}">
+                        <StackPanel>
+                            <TextBlock Text="WHERE CLIPS LIVE" Style="{StaticResource SectionLabel}"/>
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock Text="Clips folder" Style="{StaticResource RowTitle}"/>
+                                    <TextBlock x:Name="ClipsPathLabel" Style="{StaticResource RowHint}" MaxWidth="9999"/>
+                                    <TextBlock x:Name="ClipsSizeLabel" Style="{StaticResource RowHint}"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,11,0,0">
+                                        <Button Style="{StaticResource GhostButton}" Content="Change…" Padding="15,8"
+                                                Click="ChangeClipsFolder_Click"/>
+                                        <Button Style="{StaticResource GhostButton}" Content="Open" Margin="8,0,0,0"
+                                                Padding="15,8" Click="OpenClipsFolder_Click"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock Text="Maintenance" Style="{StaticResource RowTitle}"/>
+                                    <TextBlock Style="{StaticResource RowHint}"
+                                               Text="Housekeeping for when the library gets out of sync with the folder."/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                        <Button Style="{StaticResource GhostButton}" Content="Remove missing clips"
+                                                Padding="15,8" Click="Prune_Click"/>
+                                        <Button Style="{StaticResource GhostButton}" Content="Open log" Margin="8,0,0,0"
+                                                Padding="15,8" Click="OpenLog_Click"/>
+                                        <Button Style="{StaticResource GhostButton}" Content="Run audio self-test"
+                                                Margin="8,0,0,0" Padding="15,8" Click="SelfTest_Click"/>
+                                    </StackPanel>
+                                    <Button Style="{StaticResource DangerButton}" Content="Reset all settings to defaults"
+                                            HorizontalAlignment="Left" Margin="0,12,0,0" Padding="15,8"
+                                            Click="Reset_Click"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock Text="VoidClip" Style="{StaticResource H2}"/>
+                                    <TextBlock Style="{StaticResource RowHint}" MaxWidth="9999" Margin="0,6,0,0"
+                                               Text="Instant voice-channel clipper and soundboard. Audio never leaves this machine — the rolling buffer lives in memory and clips are plain WAV files in the folder above."/>
+                                    <TextBlock x:Name="VersionLabel" Style="{StaticResource RowHint}"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </TabItem>
+                </TabControl>
+
+                <!-- footer -->
+                <Border Grid.Row="2" Background="#800B0813" BorderBrush="{StaticResource StrokeSoft}"
+                        BorderThickness="0,1,0,0" Padding="22,13" CornerRadius="0,0,12,12">
+                    <Grid>
+                        <TextBlock x:Name="FooterHint" Style="{StaticResource Hint}" VerticalAlignment="Center"
+                                   Text="Changes apply as you make them."/>
+                        <Button Style="{StaticResource AccentButton}" Content="Done" HorizontalAlignment="Right"
+                                Padding="30,8" Click="Close_Click"/>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>
