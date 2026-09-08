@@ -29,6 +29,14 @@ public partial class MainWindow : Window
     private Clip _lastClip;
     private bool _ready;
     private bool _swallowNextPadUp;
+    private Clip _selectionAnchor;
+
+    private UpdateCheck _update;
+    private BannerAction _bannerAction;
+    private bool _updateBusy;
+    private readonly DispatcherTimer _updateTimer = new() { Interval = TimeSpan.FromMinutes(30) };
+
+    private enum BannerAction { None, Install, Restart, OpenReleases, OpenCommits }
 
     private AppSettings S => Core.Settings;
 
@@ -83,6 +91,14 @@ public partial class MainWindow : Window
 
         _ready = true;
         RefreshBoard();
+
+        // an update installed in a previous session is already in place by now
+        if (!string.IsNullOrEmpty(S.PendingUpdateVersion))
+        {
+            S.PendingUpdateVersion = "";
+            SettingsService.Save(S);
+        }
+        BeginUpdateWatch();
 
         if (S.StartMinimized) { WindowState = WindowState.Minimized; }
     }
@@ -240,9 +256,20 @@ public partial class MainWindow : Window
         else if (ctrl && e.Key == Key.F) { SearchBox.Focus(); SearchBox.SelectAll(); e.Handled = true; }
         else if (ctrl && e.Key == Key.N) { AddCategory(); e.Handled = true; }
         else if (ctrl && e.Key == Key.R) { ToggleCapture(); e.Handled = true; }
+        else if (ctrl && e.Key == Key.A && !SearchBox.IsKeyboardFocusWithin)
+        {
+            SelectAllVisible();
+            e.Handled = true;
+        }
+        else if (e.Key is Key.Delete or Key.Back && !SearchBox.IsKeyboardFocusWithin && SelectedCount > 0)
+        {
+            DeleteSelected();
+            e.Handled = true;
+        }
         else if (e.Key == Key.Escape)
         {
-            if (!string.IsNullOrEmpty(SearchBox.Text)) { SearchBox.Clear(); Keyboard.ClearFocus(); }
+            if (SelectedCount > 0) ClearSelection();
+            else if (!string.IsNullOrEmpty(SearchBox.Text)) { SearchBox.Clear(); Keyboard.ClearFocus(); }
             e.Handled = true;
         }
     }
@@ -352,6 +379,8 @@ public partial class MainWindow : Window
         FilterFav.Background = _filter == Filter.Favourites ? selected : Brushes.Transparent;
         FilterNone.Background = _filter == Filter.Uncategorised ? selected : Brushes.Transparent;
 
+        UpdateSelectionBar();
+
         var empty = _view.Count == 0;
         EmptyState.Visibility = empty ? Visibility.Visible : Visibility.Collapsed;
         BoardScroll.Visibility = empty ? Visibility.Collapsed : Visibility.Visible;
@@ -400,18 +429,48 @@ public partial class MainWindow : Window
     //  PAD INTERACTION
     // ══════════════════════════════════════════════════════════
     /// <summary>
-    /// Double-click is only reliable on the down event — Windows sends the second press
-    /// as WM_LBUTTONDBLCLK, so the matching up event no longer carries a count of 2.
+    /// Ctrl-click toggles a clip in the selection, Shift-click extends it, double-click
+    /// opens the editor, and a plain click just fires the pad. Double-click is only
+    /// reliable on the down event — Windows sends the second press as WM_LBUTTONDBLCLK,
+    /// so the matching up event no longer carries a count of 2.
     /// </summary>
     private void Pad_Down(object sender, MouseButtonEventArgs e)
     {
-        if (e.ClickCount < 2) return;
         if (((FrameworkElement)sender).DataContext is not Clip clip) return;
 
-        _swallowNextPadUp = true;
-        Core.Playback.StopClip(clip.Id);
-        EditClip(clip);
-        e.Handled = true;
+        var ctrl = Keyboard.Modifiers.HasFlag(ModifierKeys.Control);
+        var shift = Keyboard.Modifiers.HasFlag(ModifierKeys.Shift);
+
+        if (ctrl)
+        {
+            _swallowNextPadUp = true;
+            clip.IsSelected = !clip.IsSelected;
+            if (clip.IsSelected) _selectionAnchor = clip;
+            UpdateSelectionBar();
+            e.Handled = true;
+            return;
+        }
+
+        if (shift)
+        {
+            _swallowNextPadUp = true;
+            SelectRange(_selectionAnchor ?? clip, clip);
+            e.Handled = true;
+            return;
+        }
+
+        if (e.ClickCount >= 2)
+        {
+            _swallowNextPadUp = true;
+            Core.Playback.StopClip(clip.Id);
+            EditClip(clip);
+            e.Handled = true;
+            return;
+        }
+
+        // a plain press drops any selection, so the click means only "play this"
+        if (SelectedCount > 0) ClearSelection();
+        _selectionAnchor = clip;
     }
 
     private void Pad_Click(object sender, MouseButtonEventArgs e)
@@ -421,13 +480,223 @@ public partial class MainWindow : Window
         Fire(clip);
     }
 
+    // ══════════════════════════════════════════════════════════
+    //  SELECTION
+    // ══════════════════════════════════════════════════════════
+    private List<Clip> Selected => Core.Library.Clips.Where(c => c.IsSelected).ToList();
+    private int SelectedCount => Core.Library.Clips.Count(c => c.IsSelected);
+
+    private void SelectRange(Clip from, Clip to)
+    {
+        var a = _view.IndexOf(from);
+        var b = _view.IndexOf(to);
+        if (a < 0 || b < 0) { to.IsSelected = true; UpdateSelectionBar(); return; }
+        if (a > b) (a, b) = (b, a);
+
+        for (int i = a; i <= b; i++) _view[i].IsSelected = true;
+        UpdateSelectionBar();
+    }
+
+    private void SelectAllVisible()
+    {
+        foreach (var c in _view) c.IsSelected = true;
+        UpdateSelectionBar();
+    }
+
+    private void ClearSelection()
+    {
+        foreach (var c in Core.Library.Clips) c.IsSelected = false;
+        _selectionAnchor = null;
+        UpdateSelectionBar();
+    }
+
+    private void UpdateSelectionBar()
+    {
+        var n = SelectedCount;
+        SelectionBar.Visibility = n > 0 ? Visibility.Visible : Visibility.Collapsed;
+        if (n == 0) return;
+        SelectionCount.Text = n == 1 ? "1 clip selected" : $"{n} clips selected";
+        SelDeleteBtn.Content = n == 1 ? "Delete" : $"Delete {n}";
+    }
+
+    private void SelClear_Click(object sender, RoutedEventArgs e) => ClearSelection();
+
+    private void SelDelete_Click(object sender, RoutedEventArgs e) => DeleteSelected();
+
+    private void DeleteSelected()
+    {
+        var clips = Selected;
+        if (clips.Count == 0) return;
+
+        if (S.ConfirmDelete)
+        {
+            var names = string.Join(", ", clips.Take(4).Select(c => c.Name));
+            if (clips.Count > 4) names += $" and {clips.Count - 4} more";
+            if (!Prompt.Confirm(this,
+                    clips.Count == 1 ? "Delete clip" : $"Delete {clips.Count} clips",
+                    $"{names} — audio files included. This cannot be undone.",
+                    clips.Count == 1 ? "Delete" : $"Delete {clips.Count}", danger: true))
+                return;
+        }
+
+        foreach (var clip in clips)
+        {
+            Core.Playback.StopClip(clip.Id);
+            Core.Hotkeys.Unregister("clip:" + clip.Id);
+            Core.Library.Delete(clip);
+            if (_lastClip == clip) _lastClip = null;
+        }
+
+        ClearSelection();
+        RefreshBoard();
+        UpdateStorageLabel();
+        ShowToast("Deleted", clips.Count == 1 ? "1 clip removed." : $"{clips.Count} clips removed.");
+    }
+
+    private void SelMove_Click(object sender, RoutedEventArgs e)
+    {
+        var clips = Selected;
+        if (clips.Count == 0) return;
+
+        var menu = new ContextMenu();
+        menu.Items.Add(Item("Uncategorised", () => MoveSelected(clips, "")));
+        if (Core.Library.Categories.Count > 0) menu.Items.Add(new Separator());
+        foreach (var cat in Core.Library.Categories)
+        {
+            var c = cat;
+            menu.Items.Add(Item(c.Name, () => MoveSelected(clips, c.Id)));
+        }
+        menu.Items.Add(new Separator());
+        menu.Items.Add(Item("New category…", () =>
+        {
+            var made = AddCategory();
+            if (made != null) MoveSelected(clips, made.Id);
+        }));
+
+        menu.PlacementTarget = (UIElement)sender;
+        menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Top;
+        menu.IsOpen = true;
+    }
+
+    private void MoveSelected(List<Clip> clips, string categoryId)
+    {
+        foreach (var c in clips) c.CategoryId = categoryId;
+        Core.Library.SaveSoon();
+        var where = string.IsNullOrEmpty(categoryId)
+            ? "Uncategorised"
+            : Core.Library.CategoryById(categoryId)?.Name ?? "a category";
+        ClearSelection();
+        RefreshBoard();
+        ShowToast("Moved", $"{clips.Count} clip(s) → {where}");
+    }
+
+    private void SelExport_Click(object sender, RoutedEventArgs e)
+    {
+        var clips = Selected;
+        if (clips.Count == 0) return;
+
+        var dlg = new Microsoft.Win32.OpenFolderDialog
+        {
+            Title = $"Export {clips.Count} clip(s) as {S.DefaultExportFormat.ToString().ToUpperInvariant()}",
+            InitialDirectory = Directory.Exists(S.ExportFolder) ? S.ExportFolder : ""
+        };
+        if (dlg.ShowDialog(this) != true) return;
+
+        var folder = dlg.FolderName;
+        var ext = Exporter.Extension(S.DefaultExportFormat);
+        int done = 0, failed = 0;
+
+        Mouse.OverrideCursor = Cursors.Wait;
+        try
+        {
+            foreach (var clip in clips)
+            {
+                try
+                {
+                    var samples = Core.Library.GetSamples(clip);
+                    if (samples.Length == 0) { failed++; continue; }
+
+                    var path = Path.Combine(folder, Sanitise(clip.Name) + ext);
+                    var n = 2;
+                    while (File.Exists(path))
+                        path = Path.Combine(folder, $"{Sanitise(clip.Name)} ({n++}){ext}");
+
+                    Exporter.Export(path, samples, S.DefaultExportFormat, S.Mp3Bitrate, S.OggQuality);
+                    done++;
+                }
+                catch (Exception ex)
+                {
+                    failed++;
+                    AppPaths.Log($"Bulk export failed for {clip.Name}: {ex.Message}");
+                }
+            }
+        }
+        finally { Mouse.OverrideCursor = null; }
+
+        S.ExportFolder = folder;
+        SettingsService.Save(S);
+        ClearSelection();
+
+        ShowToast(failed == 0 ? "Exported" : "Exported with problems",
+                  failed == 0
+                      ? $"{done} clip(s) written to {Path.GetFileName(folder)}"
+                      : $"{done} written, {failed} failed — see the log.",
+                  failed > 0);
+
+        if (S.OpenFolderAfterExport && done > 0)
+        {
+            try { Process.Start("explorer.exe", "\"" + folder + "\""); } catch { }
+        }
+    }
+
     private void Pad_RightClick(object sender, MouseButtonEventArgs e)
     {
         if (((FrameworkElement)sender).DataContext is not Clip clip) return;
-        var menu = BuildClipMenu(clip);
+
+        // right-clicking inside a multi-selection acts on the whole selection
+        var menu = (clip.IsSelected && SelectedCount > 1)
+            ? BuildSelectionMenu(sender)
+            : BuildClipMenu(clip);
+
         menu.PlacementTarget = (UIElement)sender;
         menu.IsOpen = true;
         e.Handled = true;
+    }
+
+    private ContextMenu BuildSelectionMenu(object placementSource)
+    {
+        var clips = Selected;
+        var menu = new ContextMenu();
+
+        menu.Items.Add(Item($"{clips.Count} clips selected", () => { }));
+        ((MenuItem)menu.Items[0]).IsEnabled = false;
+        menu.Items.Add(new Separator());
+
+        var cats = new MenuItem { Header = "Move all to category" };
+        cats.Items.Add(Item("Uncategorised", () => MoveSelected(clips, "")));
+        if (Core.Library.Categories.Count > 0) cats.Items.Add(new Separator());
+        foreach (var cat in Core.Library.Categories)
+        {
+            var c = cat;
+            cats.Items.Add(Item(c.Name, () => MoveSelected(clips, c.Id)));
+        }
+        menu.Items.Add(cats);
+
+        var allFav = clips.All(c => c.Favorite);
+        menu.Items.Add(Item(allFav ? "Remove all from favourites" : "Add all to favourites", () =>
+        {
+            foreach (var c in clips) c.Favorite = !allFav;
+            Core.Library.SaveSoon();
+            ClearSelection();
+            RefreshBoard();
+        }));
+
+        menu.Items.Add(Item($"Export all as {S.DefaultExportFormat.ToString().ToUpperInvariant()}…",
+                            () => SelExport_Click(placementSource, null)));
+        menu.Items.Add(new Separator());
+        menu.Items.Add(Item($"Delete {clips.Count} clips", DeleteSelected));
+        menu.Items.Add(Item("Clear selection", ClearSelection));
+        return menu;
     }
 
     private ContextMenu BuildClipMenu(Clip clip)
@@ -640,6 +909,7 @@ public partial class MainWindow : Window
     private void Category_Click(object sender, MouseButtonEventArgs e)
     {
         if (((FrameworkElement)sender).DataContext is not ClipCategory cat) return;
+        ClearSelection();
         _filter = Filter.Category;
         _filterCategoryId = cat.Id;
         RefreshBoard();
@@ -693,9 +963,14 @@ public partial class MainWindow : Window
         menu.IsOpen = true;
     }
 
-    private void FilterAll_Click(object sender, MouseButtonEventArgs e) { _filter = Filter.All; RefreshBoard(); }
-    private void FilterFav_Click(object sender, MouseButtonEventArgs e) { _filter = Filter.Favourites; RefreshBoard(); }
-    private void FilterNone_Click(object sender, MouseButtonEventArgs e) { _filter = Filter.Uncategorised; RefreshBoard(); }
+    private void FilterAll_Click(object sender, MouseButtonEventArgs e)
+    { ClearSelection(); _filter = Filter.All; RefreshBoard(); }
+
+    private void FilterFav_Click(object sender, MouseButtonEventArgs e)
+    { ClearSelection(); _filter = Filter.Favourites; RefreshBoard(); }
+
+    private void FilterNone_Click(object sender, MouseButtonEventArgs e)
+    { ClearSelection(); _filter = Filter.Uncategorised; RefreshBoard(); }
 
     // ══════════════════════════════════════════════════════════
     //  CHROME + MISC UI
@@ -749,6 +1024,7 @@ public partial class MainWindow : Window
     {
         _search = SearchBox.Text;
         SearchPlaceholder.Visibility = string.IsNullOrEmpty(_search) ? Visibility.Visible : Visibility.Collapsed;
+        ClearSelection();
         RefreshBoard();
     }
 
@@ -794,6 +1070,207 @@ public partial class MainWindow : Window
             BufferLabel.Text = fill >= cap - 0.5 ? $"{cap}s buffered" : $"{fill:0}s / {cap}s";
         }
         else BufferLabel.Text = "—";
+    }
+
+    // ══════════════════════════════════════════════════════════
+    //  UPDATES
+    // ══════════════════════════════════════════════════════════
+    private void BeginUpdateWatch()
+    {
+        _updateTimer.Tick += (s, e) => TryScheduledCheck();
+        _updateTimer.Start();
+
+        // let the window finish settling before touching the network
+        Dispatcher.InvokeAsync(async () =>
+        {
+            await Task.Delay(2500);
+            TryScheduledCheck();
+        });
+    }
+
+    private void TryScheduledCheck()
+    {
+        if (!S.AutoCheckUpdates) return;
+        if (S.LastUpdateCheck.HasValue &&
+            (DateTime.Now - S.LastUpdateCheck.Value).TotalHours < S.UpdateCheckHours) return;
+        _ = CheckForUpdates(interactive: false);
+    }
+
+    /// <summary>Queries GitHub and reacts. Safe to call from the settings window.</summary>
+    public async Task<UpdateCheck> CheckForUpdates(bool interactive)
+    {
+        if (_updateBusy) return _update;
+        _updateBusy = true;
+        try
+        {
+            var check = await UpdateService.CheckAsync();
+            _update = check;
+            S.LastUpdateCheck = DateTime.Now;
+            SettingsService.Save(S);
+
+            if (check.Error != null)
+            {
+                if (interactive) ShowToast("Update check failed", check.Error, true);
+                return check;
+            }
+
+            var skipped = check.Release != null && check.Release.Tag == S.SkippedUpdateTag;
+
+            if (check.CanInstall && !skipped && S.AutoInstallUpdates)
+            {
+                await DownloadAndInstall(check.Release);
+                return check;
+            }
+
+            if (check.AnythingNew && !skipped) ShowUpdateBanner(check);
+            else if (interactive) ShowToast("Up to date", UpdateService.BuildDescription);
+
+            return check;
+        }
+        finally { _updateBusy = false; }
+    }
+
+    private void ShowUpdateBanner(UpdateCheck check)
+    {
+        UpdateProgressTrack.Visibility = Visibility.Collapsed;
+        UpdateActionBtn.IsEnabled = true;
+        UpdateNotesBtn.Visibility = Visibility.Visible;
+
+        if (check.CanInstall)
+        {
+            var mb = check.Release.AssetSize / 1024.0 / 1024.0;
+            UpdateTitle.Text = "Update available — " + check.Release.DisplayName;
+            UpdateBody.Text = mb > 1
+                ? $"{check.Release.AssetName} · {mb:0.#} MB. You are on {UpdateService.CurrentVersionText}."
+                : $"You are on {UpdateService.CurrentVersionText}.";
+            UpdateActionBtn.Content = "Install";
+            _bannerAction = BannerAction.Install;
+        }
+        else if (check.NewerRelease)
+        {
+            UpdateTitle.Text = "New release published — " + check.Release.DisplayName;
+            UpdateBody.Text = "It has no VoidClip.exe attached, so it cannot be installed automatically.";
+            UpdateActionBtn.Content = "Open GitHub";
+            _bannerAction = BannerAction.OpenReleases;
+        }
+        else
+        {
+            UpdateTitle.Text = check.NewCommits == 1
+                ? "1 new commit on main"
+                : $"{check.NewCommits} new commits on main";
+            UpdateBody.Text = string.IsNullOrEmpty(check.LatestCommitMessage)
+                ? "No release has been published for them yet."
+                : $"Latest: {check.LatestCommitMessage} — no release published for it yet.";
+            UpdateActionBtn.Content = "View commits";
+            UpdateNotesBtn.Visibility = Visibility.Collapsed;
+            _bannerAction = BannerAction.OpenCommits;
+        }
+
+        UpdateBanner.Visibility = Visibility.Visible;
+    }
+
+    private async Task DownloadAndInstall(ReleaseInfo release)
+    {
+        UpdateBanner.Visibility = Visibility.Visible;
+        UpdateNotesBtn.Visibility = Visibility.Collapsed;
+        UpdateActionBtn.IsEnabled = false;
+        UpdateProgressTrack.Visibility = Visibility.Visible;
+        UpdateProgressFill.Width = 0;
+        UpdateTitle.Text = "Downloading " + release.DisplayName;
+        UpdateBody.Text = release.AssetName;
+        _bannerAction = BannerAction.None;
+
+        var progress = new Progress<double>(f =>
+        {
+            UpdateProgressFill.Width = 260 * Math.Clamp(f, 0, 1);
+            UpdateBody.Text = $"{f * 100:0}%  ·  {release.AssetName}";
+        });
+
+        try
+        {
+            var file = await UpdateService.DownloadAsync(release, progress);
+
+            if (UpdateService.Install(file, out var error))
+            {
+                S.PendingUpdateVersion = release.Tag;
+                SettingsService.Save(S);
+
+                UpdateProgressTrack.Visibility = Visibility.Collapsed;
+                UpdateTitle.Text = release.DisplayName + " is installed";
+                UpdateBody.Text = "Restart VoidClip to start using it. It will also apply on its own next time you open the app.";
+                UpdateActionBtn.Content = "Restart now";
+                UpdateActionBtn.IsEnabled = true;
+                _bannerAction = BannerAction.Restart;
+            }
+            else
+            {
+                UpdateProgressTrack.Visibility = Visibility.Collapsed;
+                UpdateTitle.Text = "Update could not be installed";
+                UpdateBody.Text = error;
+                UpdateActionBtn.Content = "Open GitHub";
+                UpdateActionBtn.IsEnabled = true;
+                _bannerAction = BannerAction.OpenReleases;
+            }
+        }
+        catch (Exception ex)
+        {
+            AppPaths.Log("Update download failed: " + ex);
+            UpdateProgressTrack.Visibility = Visibility.Collapsed;
+            UpdateTitle.Text = "Update download failed";
+            UpdateBody.Text = ex.Message;
+            UpdateActionBtn.Content = "Open GitHub";
+            UpdateActionBtn.IsEnabled = true;
+            _bannerAction = BannerAction.OpenReleases;
+        }
+    }
+
+    private async void UpdateAction_Click(object sender, RoutedEventArgs e)
+    {
+        switch (_bannerAction)
+        {
+            case BannerAction.Install when _update?.Release != null:
+                await DownloadAndInstall(_update.Release);
+                break;
+
+            case BannerAction.Restart:
+                App.ReleaseInstanceLock();
+                UpdateService.Relaunch();
+                Close();
+                break;
+
+            case BannerAction.OpenReleases:
+                UpdateService.OpenInBrowser(_update?.Release?.PageUrl ?? UpdateService.ReleasesUrl);
+                break;
+
+            case BannerAction.OpenCommits:
+                UpdateService.OpenInBrowser(UpdateService.CommitsUrl);
+                break;
+        }
+    }
+
+    private void UpdateNotes_Click(object sender, RoutedEventArgs e)
+    {
+        var release = _update?.Release;
+        if (release == null) { UpdateService.OpenInBrowser(UpdateService.ReleasesUrl); return; }
+
+        var notes = string.IsNullOrWhiteSpace(release.Notes)
+            ? "This release has no notes."
+            : release.Notes.Trim();
+        if (notes.Length > 1400) notes = notes[..1400] + "…";
+
+        Prompt.Info(this, release.DisplayName, notes);
+    }
+
+    private void UpdateDismiss_Click(object sender, RoutedEventArgs e)
+    {
+        UpdateBanner.Visibility = Visibility.Collapsed;
+
+        // only a genuine release gets remembered as skipped; commit notices just hide
+        if (_bannerAction == BannerAction.Install && _update?.Release != null)
+        {
+            S.SkippedUpdateTag = _update.Release.Tag;
+            SettingsService.Save(S);
+        }
     }
 
     // ══════════════════════════════════════════════════════════
@@ -862,9 +1339,12 @@ public partial class MainWindow : Window
         }
     }
 
+    private static bool Finite(double v) => !double.IsNaN(v) && !double.IsInfinity(v);
+
     private void RestorePlacement()
     {
-        if (S.WindowLeft.HasValue && S.WindowTop.HasValue)
+        if (S.WindowLeft.HasValue && S.WindowTop.HasValue &&
+            Finite(S.WindowLeft.Value) && Finite(S.WindowTop.Value))
         {
             var left = S.WindowLeft.Value;
             var top = S.WindowTop.Value;
@@ -880,21 +1360,25 @@ public partial class MainWindow : Window
                 Top = top;
             }
         }
-        if (S.WindowWidth > 400) Width = S.WindowWidth;
-        if (S.WindowHeight > 300) Height = S.WindowHeight;
+        if (Finite(S.WindowWidth) && S.WindowWidth > 400) Width = S.WindowWidth;
+        if (Finite(S.WindowHeight) && S.WindowHeight > 300) Height = S.WindowHeight;
         if (S.WindowMaximized) WindowState = WindowState.Maximized;
     }
 
     private void OnClosing(object sender, System.ComponentModel.CancelEventArgs e)
     {
+        // Left/Top/Width/Height read back as NaN until the window has actually been
+        // laid out; writing that to JSON would break every later settings save.
         if (WindowState == WindowState.Normal)
         {
-            S.WindowLeft = Left; S.WindowTop = Top;
-            S.WindowWidth = Width; S.WindowHeight = Height;
+            if (Finite(Left) && Finite(Top)) { S.WindowLeft = Left; S.WindowTop = Top; }
+            if (Finite(Width) && Width > 400) S.WindowWidth = Width;
+            if (Finite(Height) && Height > 300) S.WindowHeight = Height;
         }
         S.WindowMaximized = WindowState == WindowState.Maximized;
 
         _tick.Stop();
+        _updateTimer.Stop();
         if (_tray != null) { _tray.Visible = false; _tray.Dispose(); _tray = null; }
 
         SettingsService.Save(S);

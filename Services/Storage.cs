@@ -40,6 +40,8 @@ public static class Json
     {
         WriteIndented = true,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        // a stray NaN should degrade one value, not throw away the whole file
+        NumberHandling = JsonNumberHandling.AllowNamedFloatingPointLiterals,
         Converters = { new JsonStringEnumConverter() }
     };
 }
@@ -83,7 +85,7 @@ public static class SettingsService
             AppPaths.EnsureRoot();
             File.WriteAllText(AppPaths.SettingsFile, JsonSerializer.Serialize(s, Json.Options));
         }
-        catch (Exception ex) { AppPaths.Log("Settings save failed: " + ex.Message); }
+        catch (Exception ex) { AppPaths.Log("Settings save failed: " + ex); }
     }
 }
 

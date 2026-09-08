@@ -12,11 +12,13 @@ using System.Reflection;
 
 [assembly: System.Reflection.AssemblyCompanyAttribute("VoidClip")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
-[assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyFileVersionAttribute("1.1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.1.0+53a95f3e87eb87f5932c04ba5185a07054a3d49c")]
 [assembly: System.Reflection.AssemblyProductAttribute("VoidClip")]
 [assembly: System.Reflection.AssemblyTitleAttribute("VoidClip")]
-[assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
+[assembly: System.Reflection.AssemblyVersionAttribute("1.1.0.0")]
+[assembly: System.Reflection.AssemblyMetadata("GitCommit", "53a95f3e87eb87f5932c04ba5185a07054a3d49c")]
+[assembly: System.Reflection.AssemblyMetadata("BuildDate", "2026-09-08T22:37:27.6778267Z")]
 [assembly: System.Runtime.Versioning.TargetPlatformAttribute("Windows7.0")]
 [assembly: System.Runtime.Versioning.SupportedOSPlatformAttribute("Windows7.0")]
 

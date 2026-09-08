@@ -869,13 +869,13 @@
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
-    "version": "1.0.0",
+    "version": "1.1.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\Frost\\VoidClip\\VoidClip.csproj",
+      "projectUniqueName": "C:\\Users\\Frost\\Documents\\GitHub\\Voidclips\\VoidClip.csproj",
       "projectName": "VoidClip",
-      "projectPath": "C:\\Users\\Frost\\VoidClip\\VoidClip.csproj",
+      "projectPath": "C:\\Users\\Frost\\Documents\\GitHub\\Voidclips\\VoidClip.csproj",
       "packagesPath": "C:\\Users\\Frost\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\Frost\\VoidClip\\obj\\",
+      "outputPath": "C:\\Users\\Frost\\Documents\\GitHub\\Voidclips\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

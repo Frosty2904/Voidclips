@@ -621,6 +621,75 @@
                         </StackPanel>
                     </TabItem>
 
+                    <!-- ═══════════════ UPDATES ═══════════════ -->
+                    <TabItem Header="Updates" Style="{StaticResource VerticalTabItem}">
+                        <StackPanel>
+                            <TextBlock Text="THIS BUILD" Style="{StaticResource SectionLabel}"/>
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock x:Name="BuildLabel" Style="{StaticResource RowTitle}" Text="Version"/>
+                                    <TextBlock x:Name="RepoLabel" Style="{StaticResource RowHint}" MaxWidth="9999"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                        <Button Style="{StaticResource GhostButton}" Content="Open repository"
+                                                Padding="14,8" Click="OpenRepo_Click"/>
+                                        <Button Style="{StaticResource GhostButton}" Content="Releases" Margin="8,0,0,0"
+                                                Padding="14,8" Click="OpenReleases_Click"/>
+                                        <Button Style="{StaticResource GhostButton}" Content="Commits" Margin="8,0,0,0"
+                                                Padding="14,8" Click="OpenCommits_Click"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="AUTOMATIC UPDATES" Style="{StaticResource SectionLabel}" Margin="0,8,0,8"/>
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <CheckBox x:Name="AutoCheckChk" Content="Check GitHub for new versions"/>
+                                    <TextBlock Style="{StaticResource RowHint}" Margin="26,4,0,0"
+                                               Text="Looks at the repository shortly after launch, then on the interval below."/>
+
+                                    <Grid Margin="26,14,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="230"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="How often" Style="{StaticResource RowHint}"
+                                                   Margin="0" VerticalAlignment="Center"/>
+                                        <StackPanel Grid.Column="1">
+                                            <Slider x:Name="IntervalSlider" Minimum="1" Maximum="48"
+                                                    ValueChanged="Interval_Changed"/>
+                                            <TextBlock x:Name="IntervalLabel" Style="{StaticResource RowHint}"
+                                                       HorizontalAlignment="Right" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <Border Height="1" Background="{StaticResource StrokeSoft}" Margin="0,14"/>
+
+                                    <CheckBox x:Name="AutoInstallChk"
+                                              Content="Download and install new releases automatically"/>
+                                    <TextBlock Style="{StaticResource RowHint}" Margin="26,4,0,0"
+                                               Text="The new build is swapped in beside the running one and takes effect when you next open VoidClip — it never restarts underneath you mid-call. Turn this off to be asked first."/>
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Text="STATUS" Style="{StaticResource SectionLabel}" Margin="0,8,0,8"/>
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock x:Name="UpdateStatusLabel" Style="{StaticResource RowTitle}"
+                                               Text="Not checked yet" TextWrapping="Wrap"/>
+                                    <TextBlock x:Name="UpdateStatusDetail" Style="{StaticResource RowHint}"
+                                               MaxWidth="9999"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,13,0,0">
+                                        <Button x:Name="CheckNowBtn" Style="{StaticResource AccentButton}"
+                                                Content="Check now" Padding="18,8" Click="CheckNow_Click"/>
+                                        <Button x:Name="UnskipBtn" Style="{StaticResource GhostButton}"
+                                                Content="Stop skipping" Margin="8,0,0,0" Padding="14,8"
+                                                Visibility="Collapsed" Click="Unskip_Click"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </TabItem>
+
                     <!-- ═══════════════ STORAGE ═══════════════ -->
                     <TabItem Header="Storage" Style="{StaticResource VerticalTabItem}">
                         <StackPanel>

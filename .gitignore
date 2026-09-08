@@ -1,0 +1,14 @@
+# build output
+bin/
+obj/
+dist/
+publish/
+
+# user/IDE
+.vs/
+.idea/
+*.user
+*.suo
+
+# local artefacts
+*.log

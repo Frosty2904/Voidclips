@@ -79,6 +79,12 @@ In-window shortcuts: `Ctrl+,` settings · `Ctrl+F` search · `Ctrl+N` new catego
   to category*, or right-click a category to rename, recolour, set it as the default for
   new clips, or delete it (with or without its clips).
 - **Rename / delete** — right-click a pad, or use the editor.
+- **Several at once** — `Ctrl`-click pads to pick them out, `Shift`-click to take a
+  run of them, or `Ctrl+A` to take everything on screen. A bar appears at the bottom
+  with the count and what you can do to the lot: move them to a category, export them
+  all into one folder, or delete them. `Delete` does it from the keyboard, `Esc` drops
+  the selection. Right-clicking inside a selection acts on the whole selection.
+  A plain click still just fires the pad, so nothing gets slower to trigger.
 - **Export** — right-click a pad ▸ *Export as* ▸ **MP3 / OGG / WAV**, or the buttons in
   the editor. MP3 bitrate and OGG quality live in **Settings ▸ Export**.
 
@@ -95,6 +101,45 @@ In-window shortcuts: `Ctrl+,` settings · `Ctrl+F` search · `Ctrl+N` new catego
 | **Playback ▸ Let clips overlap** | Off means one pad at a time. |
 | **Interface ▸ Background glow** | Turns the purple/red bloom up, or off entirely. |
 | **Storage ▸ Run audio self-test** | Checks capture, resampling, both encoders and the output path, and plays a short beep. Run this first if something isn't working. |
+
+---
+
+## Staying up to date
+
+VoidClip watches [its own repository](https://github.com/Frosty2904/Voidclips) and can
+update itself. **Settings ▸ Updates** has the controls; both are on by default.
+
+- It checks shortly after launch and every 6 hours after that (adjustable, 1 h – 2 days).
+- If a release carries a `VoidClip.exe`, the app downloads it and swaps it in beside the
+  running copy. **It never restarts underneath you** — a banner offers a restart, and
+  the new build takes effect on its own next time you open VoidClip.
+- If a release has no exe attached, it says so and links you to the release instead.
+- If there are new commits on `main` with no release cut for them, it tells you that too
+  — it knows the commit it was built from, so it can count exactly how far behind it is.
+- Dismissing a release banner skips that version. **Stop skipping** in the Updates tab
+  brings it back.
+
+Every build knows its own version, commit and build time, shown at the top of the
+Updates tab and in the self-test report.
+
+### Cutting a release (for whoever maintains the repo)
+
+The in-app updater downloads a release asset, so a release needs the exe attached to it.
+[`.github/workflows/release.yml`](.github/workflows/release.yml) does that for you:
+
+```sh
+git tag v1.1.0
+git push origin v1.1.0
+```
+
+That builds the single-file exe on a Windows runner, smoke-tests it, and creates the
+release with `VoidClip.exe` attached. You can also run the workflow by hand from the
+Actions tab and give it a tag.
+
+The tag must contain a version number (`v1.1.0`, `release-1.2`). The workflow stamps that
+version into the exe so that, once installed, the app correctly reports itself as current
+— a release tagged with a name that has no version in it (like the existing `audio` tag)
+can't be compared against, and won't be offered as an automatic update.
 
 ---
 
@@ -129,6 +174,10 @@ dotnet publish -c Release -r win-x64 --self-contained true \
   -p:DebugType=none -o ./dist
 ```
 
+The build stamps the current git commit and a timestamp into the assembly, which is how
+the updater works out how far behind the repo a build is. CI passes the commit explicitly
+with `-p:GitCommitOverride=<sha>`.
+
 ### Layout
 
 | Path | What's in it |
@@ -139,6 +188,7 @@ dotnet publish -c Release -r win-x64 --self-contained true \
 | `Audio/AudioFiles.cs` | WAV I/O, LAME MP3 encoder, Vorbis OGG encoder |
 | `Controls/WaveformView.cs` | Custom-drawn waveform — pad thumbnails and the interactive trim editor |
 | `Services/` | JSON persistence, global hotkeys (`RegisterHotKey`), run-at-login, audio self-test |
+| `Services/UpdateService.cs` | GitHub release/commit checks, download, and the exe swap (Windows won't overwrite a running exe, but it will let it be renamed, so the live file is moved aside and deleted on the next launch) |
 | `Themes/Obsidian.xaml` | The whole palette and every control style |
 
 Everything internal runs at 48 kHz stereo float; clips are stored as 16-bit WAV and

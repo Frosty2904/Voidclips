@@ -9,7 +9,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <AssemblyName>VoidClip</AssemblyName>
     <RootNamespace>VoidClip</RootNamespace>
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
     <Product>VoidClip</Product>
     <Company>VoidClip</Company>
     <ApplicationIcon>Assets\voidclip.ico</ApplicationIcon>
@@ -33,5 +33,25 @@
     <Using Remove="System.Windows.Forms" />
     <Using Remove="System.Drawing" />
   </ItemGroup>
+
+  <!--
+    Stamps the git commit and build time into the assembly so the updater can tell
+    how far behind the repo this build is. CI can override with -p:GitCommitOverride=<sha>.
+  -->
+  <Target Name="StampBuildInfo" BeforeTargets="GetAssemblyAttributes">
+    <Exec Command="git -C &quot;$(MSBuildProjectDirectory)&quot; rev-parse HEAD"
+          ConsoleToMSBuild="true" ContinueOnError="true"
+          StandardOutputImportance="low" StandardErrorImportance="low">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_DetectedSha" />
+    </Exec>
+    <PropertyGroup>
+      <_GitSha Condition="'$(GitCommitOverride)' != ''">$(GitCommitOverride)</_GitSha>
+      <_GitSha Condition="'$(_GitSha)' == '' and '$(_DetectedSha)' != ''">$(_DetectedSha.Trim())</_GitSha>
+    </PropertyGroup>
+    <ItemGroup>
+      <AssemblyMetadata Include="GitCommit" Value="$(_GitSha)" Condition="'$(_GitSha)' != ''" />
+      <AssemblyMetadata Include="BuildDate" Value="$([System.DateTime]::UtcNow.ToString('o'))" />
+    </ItemGroup>
+  </Target>
 
 </Project>

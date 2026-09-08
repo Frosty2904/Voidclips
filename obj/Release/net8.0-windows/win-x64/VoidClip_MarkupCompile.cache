@@ -4,15 +4,15 @@
 winexe
 C#
 .cs
-C:\Users\Frost\VoidClip\obj\Release\net8.0-windows\win-x64\
+C:\Users\Frost\Documents\GitHub\Voidclips\obj\Release\net8.0-windows\win-x64\
 VoidClip
 none
 false
 TRACE;RELEASE;NET;NET8_0;NETCOREAPP;WINDOWS;WINDOWS7_0;NET5_0_OR_GREATER;NET6_0_OR_GREATER;NET7_0_OR_GREATER;NET8_0_OR_GREATER;NETCOREAPP3_0_OR_GREATER;NETCOREAPP3_1_OR_GREATER;WINDOWS7_0_OR_GREATER
-C:\Users\Frost\VoidClip\App.xaml
+C:\Users\Frost\Documents\GitHub\Voidclips\App.xaml
 7912865081
 
-20289603412
+211430070905
 2161520094958
 MainWindow.xaml;Themes\Obsidian.xaml;Views\CategoryDialog.xaml;Views\ClipEditor.xaml;Views\HotkeyDialog.xaml;Views\Prompt.xaml;Views\SettingsWindow.xaml;
 

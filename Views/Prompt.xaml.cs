@@ -19,7 +19,8 @@ public partial class Prompt : Window
 
     private void Input_KeyDown(object sender, KeyEventArgs e)
     {
-        if (e.Key == Key.Enter) { DialogResult = true; Close(); }
+        // handled, so the default button does not also fire on a closing window
+        if (e.Key == Key.Enter) { e.Handled = true; DialogResult = true; Close(); }
     }
 
     // ──────────────────────────────────────────────────────────

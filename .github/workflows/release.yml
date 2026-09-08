@@ -1,0 +1,91 @@
+name: Release
+
+# Builds the single-file exe and attaches it to a GitHub release, which is what
+# VoidClip's in-app updater downloads. Push a tag like v1.2.0, or run this
+# workflow by hand and give it a tag.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to publish, e.g. v1.2.0"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      # The exe's own version must match the release tag, otherwise every client
+      # keeps believing an update is pending after installing it.
+      - name: Work out tag and version
+        id: v
+        shell: pwsh
+        run: |
+          $tag = if ($env:GITHUB_REF -like 'refs/tags/*') {
+            $env:GITHUB_REF -replace '^refs/tags/', ''
+          } else {
+            '${{ github.event.inputs.tag }}'
+          }
+          if ([string]::IsNullOrWhiteSpace($tag)) { throw 'No tag supplied.' }
+
+          $m = [regex]::Match($tag, '(\d+)\.(\d+)(?:\.(\d+))?')
+          if (-not $m.Success) { throw "Tag '$tag' does not contain a version number." }
+          $patch = if ($m.Groups[3].Success) { $m.Groups[3].Value } else { '0' }
+          $version = "$($m.Groups[1].Value).$($m.Groups[2].Value).$patch"
+
+          Write-Host "tag=$tag version=$version"
+          "tag=$tag"         | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Publish single-file exe
+        shell: pwsh
+        run: |
+          dotnet publish -c Release -r win-x64 --self-contained true `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
+            -p:EnableCompressionInSingleFile=true `
+            -p:DebugType=none `
+            -p:Version=${{ steps.v.outputs.version }} `
+            -p:GitCommitOverride=${{ github.sha }} `
+            -o publish
+          if (-not (Test-Path publish/VoidClip.exe)) { throw 'VoidClip.exe was not produced.' }
+          Get-Item publish/VoidClip.exe | Select-Object Name, Length
+
+      - name: Smoke-test the build
+        shell: pwsh
+        run: |
+          # No audio devices on a CI runner, so device and playback checks are
+          # expected to fail here. This only proves the exe starts and runs.
+          & publish/VoidClip.exe --selftest selftest.txt
+          if (Test-Path selftest.txt) { Get-Content selftest.txt } else { throw 'Self-test produced no report.' }
+          if (-not (Select-String -Path selftest.txt -Pattern 'MP3 encode \(LAME\)\s+PASS|PASS\s+MP3 encode' -Quiet)) {
+            Get-Content selftest.txt
+            throw 'MP3 encoder failed in the published build.'
+          }
+
+      - name: Create the release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = '${{ steps.v.outputs.tag }}'
+          if (gh release view $tag 2>$null) {
+            gh release upload $tag publish/VoidClip.exe --clobber
+          } else {
+            gh release create $tag publish/VoidClip.exe `
+              --title "VoidClip $tag" `
+              --generate-notes
+          }

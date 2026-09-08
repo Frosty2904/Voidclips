@@ -32,7 +32,7 @@ public static class SelfTest
             }
         }
 
-        sb.AppendLine("VoidClip audio self-test");
+        sb.AppendLine("VoidClip self-test  \u2014  " + UpdateService.BuildDescription);
         sb.AppendLine("────────────────────────");
 
         var dir = Path.Combine(Path.GetTempPath(), "VoidClipSelfTest");
@@ -234,6 +234,21 @@ public static class SelfTest
             if (peak < 0.005f)
                 throw new Exception($"nothing came back from the endpoint (peak {peak:0.0000})");
             return $"{dev.FriendlyName} · captured peak {peak:0.000}";
+        });
+
+        Check("GitHub update check", () =>
+        {
+            // Task.Run keeps this off whatever thread the self-test was started from
+            var check = Task.Run(() => UpdateService.CheckAsync()).GetAwaiter().GetResult();
+            if (check.Error != null) throw new Exception(check.Error);
+
+            var bits = new List<string> { check.Summary };
+            if (check.Release != null)
+                bits.Add($"latest release \"{check.Release.Tag}\", build attached: "
+                         + (check.Release.AssetName ?? "none"));
+            if (!string.IsNullOrEmpty(check.LatestCommitSha))
+                bits.Add("main at " + check.LatestCommitSha[..8]);
+            return string.Join(" | ", bits);
         });
 
         try { Directory.Delete(dir, true); } catch { }

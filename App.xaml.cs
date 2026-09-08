@@ -19,7 +19,19 @@ public static class Core
 
 public partial class App : Application
 {
-    private Mutex _single;
+    private static Mutex _single;
+    private static bool _lockReleased;
+
+    /// <summary>
+    /// Hands the single-instance lock back early, so a replacement build can start
+    /// while this process is still shutting down after an update.
+    /// </summary>
+    public static void ReleaseInstanceLock()
+    {
+        if (_lockReleased || _single == null) return;
+        _lockReleased = true;
+        try { _single.ReleaseMutex(); } catch { }
+    }
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -34,7 +46,10 @@ public partial class App : Application
         }
 
         AppPaths.EnsureRoot();
-        AppPaths.Log("─── VoidClip starting ───");
+        AppPaths.Log("─── VoidClip starting ─── " + UpdateService.BuildDescription);
+
+        // an update swapped the exe last time; the old one can go now
+        UpdateService.CleanupOldVersions();
 
         // headless diagnostic: VoidClip.exe --selftest [outputFile]
         if (e.Args.Any(a => a.Equals("--selftest", StringComparison.OrdinalIgnoreCase)))
@@ -55,6 +70,10 @@ public partial class App : Application
         Core.Library.Load(Core.Settings.ClipsFolder);
 
         base.OnStartup(e);
+
+        // created by hand rather than through StartupUri, so the early exits above
+        // (already-running, --selftest) never spin up the UI and its audio engines
+        new MainWindow().Show();
     }
 
     private void OnUiException(object sender, DispatcherUnhandledExceptionEventArgs e)
@@ -79,7 +98,7 @@ public partial class App : Application
         }
         catch { }
         AppPaths.Log("─── VoidClip exit ───");
-        _single?.ReleaseMutex();
+        ReleaseInstanceLock();
         base.OnExit(e);
     }
 }

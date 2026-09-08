@@ -94,6 +94,18 @@
                     <Border Grid.RowSpan="3" Margin="-12,-10,-12,-9" CornerRadius="12" IsHitTestVisible="False"
                             BorderBrush="{StaticResource RedGlow}" BorderThickness="1.5" Background="#22FF2E63"
                             Visibility="{Binding IsPlaying, Converter={StaticResource BoolVis}}"/>
+
+                    <!-- selection overlay -->
+                    <Border Grid.RowSpan="3" Margin="-12,-10,-12,-9" CornerRadius="12" IsHitTestVisible="False"
+                            BorderBrush="{StaticResource BlueGlow}" BorderThickness="2" Background="#263B82F6"
+                            Visibility="{Binding IsSelected, Converter={StaticResource BoolVis}}">
+                        <Border Width="19" Height="19" CornerRadius="10" Background="{StaticResource Blue}"
+                                HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,7,7,0">
+                            <Path Data="M 2.5 5.5 L 5 8.5 L 10 2" Stroke="White" StrokeThickness="1.8"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                        </Border>
+                    </Border>
                 </Grid>
             </Border>
 
@@ -155,6 +167,7 @@
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="36"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
@@ -271,8 +284,46 @@
                 </Grid>
             </Border>
 
+            <!-- ══════════ UPDATE BANNER ══════════ -->
+            <Border x:Name="UpdateBanner" Grid.Row="2" Visibility="Collapsed" Padding="16,10"
+                    Background="#4014091F" BorderBrush="#66A855F7" BorderThickness="0,0,0,1">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Width="3" CornerRadius="2" Margin="0,0,13,0"
+                            Background="{StaticResource AccentGradientWide}"/>
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock x:Name="UpdateTitle" Text="Update available" FontSize="12.5"
+                                   FontWeight="SemiBold" Foreground="{StaticResource Text}"/>
+                        <TextBlock x:Name="UpdateBody" Text="" FontSize="11" Margin="0,2,0,0"
+                                   Foreground="{StaticResource TextDim}" TextTrimming="CharacterEllipsis"/>
+                        <Grid x:Name="UpdateProgressTrack" Height="4" Margin="0,7,0,0" Visibility="Collapsed"
+                              HorizontalAlignment="Left" Width="260">
+                            <Border Background="#FF1B1629" CornerRadius="2"/>
+                            <Border x:Name="UpdateProgressFill" Background="{StaticResource AccentGradientWide}"
+                                    CornerRadius="2" HorizontalAlignment="Left" Width="0"/>
+                        </Grid>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button x:Name="UpdateNotesBtn" Style="{StaticResource GhostButton}" Content="Release notes"
+                                Padding="12,7" Click="UpdateNotes_Click"/>
+                        <Button x:Name="UpdateActionBtn" Style="{StaticResource AccentButton}" Content="Install"
+                                Margin="8,0,0,0" Padding="18,7" Click="UpdateAction_Click"/>
+                        <Button x:Name="UpdateDismissBtn" Style="{StaticResource IconButton}" Content="&#xE8BB;"
+                                FontFamily="Segoe MDL2 Assets" FontSize="9" Margin="6,0,0,0"
+                                ToolTip="Dismiss" Click="UpdateDismiss_Click"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
             <!-- ══════════ BODY ══════════ -->
-            <Grid Grid.Row="2">
+            <Grid Grid.Row="3">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="238"/>
                     <ColumnDefinition Width="*"/>
@@ -376,6 +427,35 @@
                         </ItemsControl>
                     </ScrollViewer>
 
+                    <!-- selection actions -->
+                    <Border x:Name="SelectionBar" VerticalAlignment="Bottom" HorizontalAlignment="Center"
+                            Margin="0,0,0,18" Visibility="Collapsed" CornerRadius="11" Padding="15,10"
+                            Background="#F2140F26" BorderBrush="{StaticResource Blue}" BorderThickness="1"
+                            Effect="{StaticResource PanelShadow}">
+                        <StackPanel Orientation="Horizontal">
+                            <Border Width="19" Height="19" CornerRadius="10" Background="{StaticResource Blue}"
+                                    VerticalAlignment="Center">
+                                <Path Data="M 2.5 5.5 L 5 8.5 L 10 2" Stroke="White" StrokeThickness="1.8"
+                                      HorizontalAlignment="Center" VerticalAlignment="Center"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                            </Border>
+                            <TextBlock x:Name="SelectionCount" Text="0 selected" Margin="10,0,4,0" FontSize="12.5"
+                                       FontWeight="SemiBold" Foreground="{StaticResource Text}"
+                                       VerticalAlignment="Center"/>
+                            <Border Width="1" Background="{StaticResource Stroke}" Margin="12,2"/>
+                            <Button Style="{StaticResource GhostButton}" Content="Move to…" Padding="13,7"
+                                    Click="SelMove_Click" ToolTip="Put all selected clips in a category"/>
+                            <Button Style="{StaticResource GhostButton}" Content="Export…" Margin="7,0,0,0"
+                                    Padding="13,7" Click="SelExport_Click"
+                                    ToolTip="Export every selected clip into one folder"/>
+                            <Button x:Name="SelDeleteBtn" Style="{StaticResource DangerButton}" Content="Delete"
+                                    Margin="7,0,0,0" Padding="15,7" Click="SelDelete_Click"/>
+                            <Border Width="1" Background="{StaticResource Stroke}" Margin="12,2"/>
+                            <Button Style="{StaticResource GhostButton}" Content="Clear" Padding="12,7"
+                                    Click="SelClear_Click"/>
+                        </StackPanel>
+                    </Border>
+
                     <!-- empty state -->
                     <StackPanel x:Name="EmptyState" VerticalAlignment="Center" HorizontalAlignment="Center"
                                 MaxWidth="440" Visibility="Collapsed">
@@ -393,7 +473,7 @@
             </Grid>
 
             <!-- ══════════ BOTTOM BAR ══════════ -->
-            <Border Grid.Row="3" Background="#99100C1B" BorderBrush="{StaticResource StrokeSoft}"
+            <Border Grid.Row="4" Background="#99100C1B" BorderBrush="{StaticResource StrokeSoft}"
                     BorderThickness="0,1,0,0" Padding="16,10">
                 <Grid>
                     <Grid.ColumnDefinitions>

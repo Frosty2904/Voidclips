@@ -73,6 +73,12 @@ public class Clip : Bindable
     [JsonIgnore]
     public bool IsPlaying { get => _isPlaying; set => Set(ref _isPlaying, value); }
 
+    /// <summary>Board selection, for acting on several clips at once. Never persisted.</summary>
+    [JsonIgnore]
+    private bool _isSelected;
+    [JsonIgnore]
+    public bool IsSelected { get => _isSelected; set => Set(ref _isSelected, value); }
+
     public void NotifyAll()
     {
         Raise(nameof(Name)); Raise(nameof(DurationText)); Raise(nameof(Hotkey));
@@ -239,6 +245,30 @@ public class AppSettings : Bindable
     public double BackdropIntensity { get => _backdropIntensity; set => Set(ref _backdropIntensity, Math.Clamp(value, 0, 1.5)); }
     public bool Animations { get => _animations; set => Set(ref _animations, value); }
     public bool ConfirmDelete { get => _confirmDelete; set => Set(ref _confirmDelete, value); }
+
+    // ─────────── UPDATES ───────────
+    private bool _autoCheckUpdates = true;
+    private bool _autoInstallUpdates = true;
+    private int _updateCheckHours = 6;
+
+    /// <summary>Look at the GitHub repo on launch and periodically after that.</summary>
+    public bool AutoCheckUpdates { get => _autoCheckUpdates; set => Set(ref _autoCheckUpdates, value); }
+
+    /// <summary>
+    /// Download and swap in a new release without asking. The swap only takes effect
+    /// on the next launch, so this never restarts the app underneath you mid-call.
+    /// </summary>
+    public bool AutoInstallUpdates { get => _autoInstallUpdates; set => Set(ref _autoInstallUpdates, value); }
+
+    public int UpdateCheckHours { get => _updateCheckHours; set => Set(ref _updateCheckHours, Math.Clamp(value, 1, 168)); }
+
+    public DateTime? LastUpdateCheck { get; set; }
+
+    /// <summary>Release tag already installed and waiting for a restart. Empty when none.</summary>
+    public string PendingUpdateVersion { get; set; } = "";
+
+    /// <summary>Release tag the user chose to skip, so they stop being told about it.</summary>
+    public string SkippedUpdateTag { get; set; } = "";
 
     // ─────────── STORAGE ───────────
     private string _clipsFolder = "";

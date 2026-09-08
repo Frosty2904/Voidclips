@@ -122,6 +122,14 @@ public partial class SettingsWindow : Window
         StartMinChk.IsChecked = S.StartMinimized;
         StartupChk.IsChecked = S.RunAtStartup || StartupShortcut.IsEnabled();
 
+        // ── updates ──
+        AutoCheckChk.IsChecked = S.AutoCheckUpdates;
+        AutoInstallChk.IsChecked = S.AutoInstallUpdates;
+        IntervalSlider.Value = S.UpdateCheckHours;
+        BuildLabel.Text = UpdateService.BuildDescription;
+        RepoLabel.Text = "Watching " + UpdateService.RepoUrl + " (branch " + UpdateService.Branch + ")";
+        RefreshUpdateStatus();
+
         // ── storage ──
         ClipsPathLabel.Text = S.ClipsFolder;
         VersionLabel.Text = "Version " +
@@ -228,6 +236,14 @@ public partial class SettingsWindow : Window
             S.RunAtStartup = StartupChk.IsChecked == true;
             StartupShortcut.Apply(S.RunAtStartup);
         };
+
+        AutoCheckChk.Click += (s, e) =>
+        {
+            S.AutoCheckUpdates = AutoCheckChk.IsChecked == true;
+            IntervalSlider.IsEnabled = S.AutoCheckUpdates;
+            AutoInstallChk.IsEnabled = S.AutoCheckUpdates;
+        };
+        AutoInstallChk.Click += (s, e) => S.AutoInstallUpdates = AutoInstallChk.IsChecked == true;
     }
 
     private void ParseQuickLengths()
@@ -464,6 +480,7 @@ public partial class SettingsWindow : Window
         Latency_Changed(null, null);
         Ogg_Changed(null, null);
         Backdrop_Changed(null, null);
+        Interval_Changed(null, null);
     }
 
     private void UpdateStatusLines()
@@ -607,6 +624,101 @@ public partial class SettingsWindow : Window
         }
         catch { }
     }
+
+    // ══════════════════════════════════════════════════════════
+    //  UPDATES
+    // ══════════════════════════════════════════════════════════
+    private void Interval_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (!_built) return;
+        var hours = (int)IntervalSlider.Value;
+        IntervalLabel.Text = hours == 1 ? "every hour"
+            : hours < 24 ? $"every {hours} hours"
+            : hours == 24 ? "once a day"
+            : $"every {hours / 24.0:0.#} days";
+        if (_loading) return;
+        S.UpdateCheckHours = hours;
+    }
+
+    private void RefreshUpdateStatus()
+    {
+        IntervalSlider.IsEnabled = S.AutoCheckUpdates;
+        AutoInstallChk.IsEnabled = S.AutoCheckUpdates;
+
+        UnskipBtn.Visibility = string.IsNullOrEmpty(S.SkippedUpdateTag)
+            ? Visibility.Collapsed : Visibility.Visible;
+
+        if (!string.IsNullOrEmpty(S.PendingUpdateVersion))
+        {
+            UpdateStatusLabel.Text = $"{S.PendingUpdateVersion} is installed and waiting for a restart.";
+            UpdateStatusDetail.Text = "It applies the next time you open VoidClip.";
+            return;
+        }
+
+        UpdateStatusLabel.Text = S.LastUpdateCheck.HasValue
+            ? "Last checked " + Friendly(S.LastUpdateCheck.Value)
+            : "Not checked yet";
+
+        UpdateStatusDetail.Text = string.IsNullOrEmpty(S.SkippedUpdateTag)
+            ? ""
+            : $"Skipping release “{S.SkippedUpdateTag}” — you dismissed it.";
+    }
+
+    private static string Friendly(DateTime when)
+    {
+        var ago = DateTime.Now - when;
+        if (ago.TotalMinutes < 1) return "just now";
+        if (ago.TotalMinutes < 60) return $"{ago.TotalMinutes:0} min ago";
+        if (ago.TotalHours < 24) return $"{ago.TotalHours:0} hours ago";
+        return when.ToString("dd MMM yyyy HH:mm");
+    }
+
+    private async void CheckNow_Click(object sender, RoutedEventArgs e)
+    {
+        CheckNowBtn.IsEnabled = false;
+        CheckNowBtn.Content = "Checking…";
+        UpdateStatusDetail.Text = "";
+        try
+        {
+            var check = Main != null
+                ? await Main.CheckForUpdates(interactive: true)
+                : await UpdateService.CheckAsync();
+
+            if (check == null) { UpdateStatusLabel.Text = "A check is already running."; return; }
+
+            UpdateStatusLabel.Text = check.Summary;
+
+            var bits = new List<string>();
+            if (!string.IsNullOrEmpty(check.LatestCommitSha))
+                bits.Add("main is at " + check.LatestCommitSha[..Math.Min(8, check.LatestCommitSha.Length)]);
+            if (check.Release != null)
+                bits.Add("latest release: " + check.Release.DisplayName);
+            UpdateStatusDetail.Text = string.Join("  ·  ", bits);
+        }
+        finally
+        {
+            CheckNowBtn.IsEnabled = true;
+            CheckNowBtn.Content = "Check now";
+            UnskipBtn.Visibility = string.IsNullOrEmpty(S.SkippedUpdateTag)
+                ? Visibility.Collapsed : Visibility.Visible;
+        }
+    }
+
+    private void Unskip_Click(object sender, RoutedEventArgs e)
+    {
+        S.SkippedUpdateTag = "";
+        SettingsService.Save(S);
+        RefreshUpdateStatus();
+    }
+
+    private void OpenRepo_Click(object sender, RoutedEventArgs e)
+        => UpdateService.OpenInBrowser(UpdateService.RepoUrl);
+
+    private void OpenReleases_Click(object sender, RoutedEventArgs e)
+        => UpdateService.OpenInBrowser(UpdateService.ReleasesUrl);
+
+    private void OpenCommits_Click(object sender, RoutedEventArgs e)
+        => UpdateService.OpenInBrowser(UpdateService.CommitsUrl);
 
     private void SelfTest_Click(object sender, RoutedEventArgs e)
     {
