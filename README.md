@@ -5,7 +5,7 @@ Instant voice-channel clipper and soundboard for Windows.
 VoidClip keeps a rolling buffer of whatever your speakers are playing. When a friend
 says something worth keeping, you hit one key and the last N seconds become a
 soundboard pad you can fire straight back into the call.
-
+to locate the exe go into bin/Release/net8.0-windows/win-x64/VoidClip.exe
 **The app is a single file:** `dist\VoidClip.exe` (~64 MB, no installer, no .NET needed).
 Put it anywhere you like and double-click it.
 
