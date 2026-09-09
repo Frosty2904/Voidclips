@@ -9,7 +9,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <AssemblyName>VoidClip</AssemblyName>
     <RootNamespace>VoidClip</RootNamespace>
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <Product>VoidClip</Product>
     <Company>VoidClip</Company>
     <ApplicationIcon>Assets\voidclip.ico</ApplicationIcon>

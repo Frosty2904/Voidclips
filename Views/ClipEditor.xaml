@@ -3,181 +3,435 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ctrl="clr-namespace:VoidClip.Controls"
         WindowStyle="None" ResizeMode="CanResize" ShowInTaskbar="False"
-        WindowStartupLocation="CenterOwner" Width="900" Height="790"
-        MinWidth="720" MinHeight="620"
+        WindowStartupLocation="CenterOwner" Width="1330" Height="880"
+        MinWidth="1080" MinHeight="700"
         Background="Transparent" AllowsTransparency="True"
         TextOptions.TextFormattingMode="Display">
+
+    <Window.Resources>
+        <!-- the source list: flat rows, accent when picked -->
+        <Style x:Key="SourceItem" TargetType="ListBoxItem">
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="0,0,0,4"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="B" CornerRadius="7" Background="#33130F22"
+                                BorderBrush="{StaticResource StrokeSoft}" BorderThickness="1" Padding="9,7">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="B" Property="Background" Value="#33A855F7"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="B" Property="Background" Value="#44A855F7"/>
+                                <Setter TargetName="B" Property="BorderBrush" Value="{StaticResource Purple}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="Panel" TargetType="Border">
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Background" Value="#4D0B0813"/>
+            <Setter Property="BorderBrush" Value="{StaticResource StrokeSoft}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+    </Window.Resources>
+
     <Border CornerRadius="13" Background="{StaticResource AppBackdrop}" BorderBrush="{StaticResource Purple}"
             BorderThickness="1" Effect="{StaticResource PanelShadow}" Margin="12">
         <Grid>
-            <Rectangle Fill="{StaticResource PurpleBloom}" Opacity="0.5" IsHitTestVisible="False"
-                       RadiusX="13" RadiusY="13" HorizontalAlignment="Left" Width="600"/>
-            <Rectangle Fill="{StaticResource RedBloom}" Opacity="0.45" IsHitTestVisible="False"
-                       RadiusX="13" RadiusY="13" HorizontalAlignment="Right" Width="520"
-                       VerticalAlignment="Bottom" Height="420"/>
+            <Rectangle Fill="{StaticResource PurpleBloom}" Opacity="0.45" IsHitTestVisible="False"
+                       RadiusX="13" RadiusY="13" HorizontalAlignment="Left" Width="640"/>
+            <Rectangle Fill="{StaticResource RedBloom}" Opacity="0.4" IsHitTestVisible="False"
+                       RadiusX="13" RadiusY="13" HorizontalAlignment="Right" Width="560"
+                       VerticalAlignment="Bottom" Height="460"/>
 
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <!-- ═══ HEADER ═══ -->
-                <Border Grid.Row="0" MouseLeftButtonDown="Header_Drag" Background="Transparent" Padding="22,18,16,0">
+                <!-- ═══════════════ HEADER ═══════════════ -->
+                <Border Grid.Row="0" MouseLeftButtonDown="Header_Drag" Background="Transparent" Padding="22,16,16,10">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
+
                         <StackPanel Grid.Column="0">
                             <Border Height="3" CornerRadius="2" Background="{StaticResource AccentGradientWide}"
-                                    HorizontalAlignment="Left" Width="46" Margin="0,0,0,11"/>
-                            <TextBlock Text="EDIT CLIP" Style="{StaticResource SectionLabel}" Margin="0,0,0,4"/>
+                                    HorizontalAlignment="Left" Width="46" Margin="0,0,0,10"/>
+                            <TextBlock Text="CLIP EDITOR" Style="{StaticResource SectionLabel}" Margin="0,0,0,3"/>
                             <TextBlock x:Name="HeaderName" Style="{StaticResource H1}" Text="Clip"/>
                         </StackPanel>
-                        <Button Grid.Column="1" Style="{StaticResource TitleBarButton}" Content="&#xE8BB;"
+
+                        <StackPanel Grid.Column="1" VerticalAlignment="Bottom" Margin="0,0,14,0">
+                            <TextBlock Text="PAD NAME" Style="{StaticResource SectionLabel}" Margin="0,0,0,5"/>
+                            <TextBox x:Name="NameBox" Width="270" Height="34" TextChanged="Name_Changed"/>
+                        </StackPanel>
+
+                        <Button Grid.Column="2" Style="{StaticResource TitleBarButton}" Content="&#xE8BB;"
                                 VerticalAlignment="Top" Click="Cancel_Click"/>
                     </Grid>
                 </Border>
 
-                <!-- ═══ BODY ═══ -->
-                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="22,16,14,0">
-                    <StackPanel>
-                        <!-- name -->
-                        <TextBlock Text="NAME" Style="{StaticResource SectionLabel}"/>
-                        <TextBox x:Name="NameBox" Height="36" TextChanged="Name_Changed"/>
+                <!-- ═══════════════ BODY ═══════════════ -->
+                <Grid Grid.Row="1" Margin="22,4,22,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="238"/>
+                        <ColumnDefinition Width="14"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="14"/>
+                        <ColumnDefinition Width="352"/>
+                    </Grid.ColumnDefinitions>
 
-                        <!-- waveform -->
-                        <Grid Margin="0,20,0,0">
-                            <TextBlock Text="SELECTION" Style="{StaticResource SectionLabel}" Margin="0"/>
-                            <TextBlock x:Name="SelectionInfo" Style="{StaticResource Hint}" HorizontalAlignment="Right"
-                                       Margin="0,-2,0,0"/>
-                        </Grid>
-                        <Border Margin="0,8,0,0" CornerRadius="10" Background="#B30B0813"
-                                BorderBrush="{StaticResource Stroke}" BorderThickness="1" Padding="10,12">
-                            <ctrl:WaveformView x:Name="Wave" Height="146" Interactive="True"/>
-                        </Border>
-                        <TextBlock Style="{StaticResource Hint}" Margin="2,7,0,0"
-                                   Text="Drag the red handles to set in/out points · click anywhere to move the playhead"/>
-
-                        <!-- transport -->
-                        <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
-                            <Button x:Name="PlayBtn" Style="{StaticResource AccentButton}" Click="Play_Click" Padding="18,9">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock x:Name="PlayGlyph" Text="&#xE768;" FontFamily="Segoe MDL2 Assets"
-                                               FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                    <TextBlock x:Name="PlayLabel" Text="Preview selection" VerticalAlignment="Center"/>
-                                </StackPanel>
-                            </Button>
-                            <Button Style="{StaticResource GhostButton}" Content="Select all" Margin="8,0,0,0"
-                                    Padding="14,9" Click="SelectAll_Click"/>
-                            <Button Style="{StaticResource GhostButton}" Content="Crop to selection" Margin="8,0,0,0"
-                                    Padding="14,9" Click="Crop_Click"
-                                    ToolTip="Permanently discard everything outside the handles"/>
-                            <Button Style="{StaticResource GhostButton}" Content="Undo edits" Margin="8,0,0,0"
-                                    Padding="14,9" Click="Revert_Click"/>
-                        </StackPanel>
-
-                        <!-- processing -->
-                        <TextBlock Text="AUDIO" Style="{StaticResource SectionLabel}" Margin="0,22,0,8"/>
-                        <Border CornerRadius="10" Background="#4D0B0813" BorderBrush="{StaticResource StrokeSoft}"
-                                BorderThickness="1" Padding="15,13">
-                            <StackPanel>
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="118"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="56"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="Playback gain" Style="{StaticResource Body}"
-                                               VerticalAlignment="Center"/>
-                                    <Slider Grid.Column="1" x:Name="GainSlider" Minimum="0" Maximum="2" Value="1"
-                                            ValueChanged="Gain_Changed" VerticalAlignment="Center"/>
-                                    <TextBlock Grid.Column="2" x:Name="GainLabel" Text="100%" Style="{StaticResource Hint}"
-                                               HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                                </Grid>
-
-                                <Grid Margin="0,12,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="118"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="56"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="Fade in" Style="{StaticResource Body}"
-                                               VerticalAlignment="Center"/>
-                                    <Slider Grid.Column="1" x:Name="FadeInSlider" Minimum="0" Maximum="1000" Value="0"
-                                            ValueChanged="Fade_Changed" VerticalAlignment="Center"/>
-                                    <TextBlock Grid.Column="2" x:Name="FadeInLabel" Text="0 ms" Style="{StaticResource Hint}"
-                                               HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                                </Grid>
-
-                                <Grid Margin="0,12,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="118"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="56"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="Fade out" Style="{StaticResource Body}"
-                                               VerticalAlignment="Center"/>
-                                    <Slider Grid.Column="1" x:Name="FadeOutSlider" Minimum="0" Maximum="2000" Value="0"
-                                            ValueChanged="Fade_Changed" VerticalAlignment="Center"/>
-                                    <TextBlock Grid.Column="2" x:Name="FadeOutLabel" Text="0 ms" Style="{StaticResource Hint}"
-                                               HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                                </Grid>
-
-                                <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
-                                    <Button Style="{StaticResource GhostButton}" Content="Normalise" Padding="14,8"
-                                            Click="Normalise_Click" ToolTip="Lift the loudest peak up to −1.5 dBFS"/>
-                                    <Button Style="{StaticResource GhostButton}" Content="Trim silence" Margin="8,0,0,0"
-                                            Padding="14,8" Click="TrimSilence_Click"
-                                            ToolTip="Cut the dead air off both ends"/>
-                                    <CheckBox x:Name="LoopChk" Content="Loop when fired" Margin="16,0,0,0"
-                                              VerticalAlignment="Center" Click="Loop_Changed"/>
-                                </StackPanel>
-                            </StackPanel>
-                        </Border>
-
-                        <!-- organisation -->
-                        <TextBlock Text="ORGANISATION" Style="{StaticResource SectionLabel}" Margin="0,22,0,8"/>
+                    <!-- ─────────── SOURCES ─────────── -->
+                    <Border Grid.Column="0" Style="{StaticResource Panel}" Padding="13,12">
                         <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Text="SOURCES" Style="{StaticResource SectionLabel}"/>
+
+                            <StackPanel Grid.Row="1" Margin="0,0,0,10">
+                                <Button Style="{StaticResource AccentButton}" Content="Import audio file…"
+                                        Padding="10,8" Click="Import_Click"
+                                        ToolTip="Bring in a WAV, MP3, OGG, FLAC, M4A or WMA file (Ctrl+I)"/>
+                                <Button Style="{StaticResource GhostButton}" Content="Grab from the live buffer"
+                                        Margin="0,6,0,0" Padding="10,7" Click="GrabBuffer_Click"
+                                        ToolTip="Take the last few seconds of capture straight onto the timeline"/>
+                            </StackPanel>
+
+                            <ListBox Grid.Row="2" x:Name="SourceList" Background="Transparent" BorderThickness="0"
+                                     ItemContainerStyle="{StaticResource SourceItem}"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                     MouseDoubleClick="SourceList_DoubleClick">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Name}" Style="{StaticResource Body}"
+                                                       TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+                                            <TextBlock Text="{Binding Sub}" Style="{StaticResource Hint}"
+                                                       FontSize="10.5" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+
+                            <StackPanel Grid.Row="3" Margin="0,10,0,0">
+                                <Button Style="{StaticResource GhostButton}" Content="Add at playhead"
+                                        Padding="10,8" Click="AddSource_Click"/>
+                                <TextBlock Style="{StaticResource Hint}" FontSize="10.5" Margin="1,7,0,0"
+                                           Text="Double-click a source to drop it on the selected track at the playhead."/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- ─────────── TIMELINE ─────────── -->
+                    <Grid Grid.Column="2">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- toolbar -->
+                        <Grid Grid.Row="0" Margin="0,0,0,9">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="14"/>
-                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0">
-                                <TextBlock Text="Category" Style="{StaticResource Hint}" Margin="0,0,0,6"/>
-                                <ComboBox x:Name="CategoryBox" SelectionChanged="Category_Changed"/>
+
+                            <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                <Button Style="{StaticResource GhostButton}" Content="+ Track" Padding="11,7"
+                                        Click="AddTrack_Click" ToolTip="A new lane, for layering under what is there"/>
+                                <Button Style="{StaticResource GhostButton}" Content="Split" Margin="6,0,0,0"
+                                        Padding="11,7" Click="Split_Click" ToolTip="Cut the selected block at the playhead (S)"/>
+                                <Button Style="{StaticResource GhostButton}" Content="Duplicate" Margin="6,0,0,0"
+                                        Padding="11,7" Click="Duplicate_Click" ToolTip="Copy the selected block (Ctrl+D)"/>
+                                <Button Style="{StaticResource GhostButton}" Content="Remove" Margin="6,0,0,0"
+                                        Padding="11,7" Click="RemoveItem_Click" ToolTip="Take the selected block off the timeline (Delete)"/>
+                                <Button Style="{StaticResource GhostButton}" Content="Undo" Margin="14,0,0,0"
+                                        Padding="11,7" Click="Undo_Click" ToolTip="Ctrl+Z"/>
+                                <Button Style="{StaticResource GhostButton}" Content="Redo" Margin="6,0,0,0"
+                                        Padding="11,7" Click="Redo_Click" ToolTip="Ctrl+Y"/>
                             </StackPanel>
-                            <StackPanel Grid.Column="2">
-                                <TextBlock Text="Hotkey" Style="{StaticResource Hint}" Margin="0,0,0,6"/>
-                                <Button x:Name="HotkeyBtn" Style="{StaticResource GhostButton}" Height="34"
-                                        Content="Not set" Click="Hotkey_Click"/>
+
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <CheckBox x:Name="SnapChk" Content="Snap" IsChecked="True" VerticalAlignment="Center"
+                                          Click="Snap_Changed" ToolTip="Pull block edges onto other blocks and the playhead"/>
+                                <TextBlock Text="Zoom" Style="{StaticResource Hint}" Margin="16,0,8,0"
+                                           VerticalAlignment="Center"/>
+                                <Slider x:Name="ZoomSlider" Width="120" Minimum="8" Maximum="600" Value="80"
+                                        VerticalAlignment="Center" ValueChanged="Zoom_Changed"/>
+                                <Button Style="{StaticResource GhostButton}" Content="Fit" Margin="8,0,0,0"
+                                        Padding="10,7" Click="Fit_Click"/>
                             </StackPanel>
                         </Grid>
 
-                        <TextBlock x:Name="MetaLine" Style="{StaticResource Hint}" Margin="0,16,0,20"/>
-                    </StackPanel>
-                </ScrollViewer>
+                        <!-- lanes -->
+                        <Border Grid.Row="1" Style="{StaticResource Panel}" Background="#B30B0813" Padding="0">
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="136"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
 
-                <!-- ═══ FOOTER ═══ -->
-                <Border Grid.Row="2" Background="#800B0813" BorderBrush="{StaticResource StrokeSoft}"
-                        BorderThickness="0,1,0,0" Padding="22,13" CornerRadius="0,0,12,12">
+                                    <StackPanel Grid.Column="0" x:Name="TrackHeaders" Margin="0,26,0,0"/>
+
+                                    <ScrollViewer Grid.Column="1" x:Name="TimelineScroll"
+                                                  HorizontalScrollBarVisibility="Auto"
+                                                  VerticalScrollBarVisibility="Disabled"
+                                                  PreviewMouseWheel="Timeline_Wheel">
+                                        <ctrl:TimelineView x:Name="Timeline" HorizontalAlignment="Left"/>
+                                    </ScrollViewer>
+                                </Grid>
+                            </ScrollViewer>
+                        </Border>
+                    </Grid>
+
+                    <!-- ─────────── INSPECTOR ─────────── -->
+                    <Border Grid.Column="4" Style="{StaticResource Panel}" Padding="13,12">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- what the rack is pointed at -->
+                            <StackPanel Grid.Row="0">
+                                <TextBlock Text="EFFECTS FOR" Style="{StaticResource SectionLabel}"/>
+                                <UniformGrid Columns="3" Margin="0,0,0,10">
+                                    <Button x:Name="TargetBlockBtn" Content="Block" Padding="6,7"
+                                            Style="{StaticResource AccentButton}" Click="TargetBlock_Click"
+                                            ToolTip="Just the selected block"/>
+                                    <Button x:Name="TargetTrackBtn" Content="Track" Padding="6,7" Margin="6,0"
+                                            Style="{StaticResource GhostButton}" Click="TargetTrack_Click"
+                                            ToolTip="Everything on the selected block's lane"/>
+                                    <Button x:Name="TargetMasterBtn" Content="Master" Padding="6,7"
+                                            Style="{StaticResource GhostButton}" Click="TargetMaster_Click"
+                                            ToolTip="The finished mix, after the lanes are summed"/>
+                                </UniformGrid>
+                            </StackPanel>
+
+                            <!-- block properties -->
+                            <Border Grid.Row="1" x:Name="BlockPanel" Style="{StaticResource Panel}"
+                                    Background="#66130F22" Padding="11,10" Margin="0,0,0,10">
+                                <StackPanel>
+                                    <TextBlock x:Name="BlockTitle" Style="{StaticResource H2}" Text="No block selected"
+                                               TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock x:Name="BlockMeta" Style="{StaticResource Hint}" Margin="0,3,0,0"/>
+
+                                    <Grid Margin="0,9,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="62"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="52"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Level" Style="{StaticResource Body}" VerticalAlignment="Center"/>
+                                        <Slider Grid.Column="1" x:Name="BlockGain" Minimum="0" Maximum="2" Value="1"
+                                                VerticalAlignment="Center" ValueChanged="BlockGain_Changed"/>
+                                        <TextBlock Grid.Column="2" x:Name="BlockGainLabel" Text="100%"
+                                                   Style="{StaticResource Hint}" HorizontalAlignment="Right"
+                                                   VerticalAlignment="Center"/>
+                                    </Grid>
+
+                                    <Grid Margin="0,7,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="62"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="52"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Fade in" Style="{StaticResource Body}" VerticalAlignment="Center"/>
+                                        <Slider Grid.Column="1" x:Name="BlockFadeIn" Minimum="0" Maximum="3000" Value="0"
+                                                VerticalAlignment="Center" ValueChanged="BlockFade_Changed"/>
+                                        <TextBlock Grid.Column="2" x:Name="BlockFadeInLabel" Text="0 ms"
+                                                   Style="{StaticResource Hint}" HorizontalAlignment="Right"
+                                                   VerticalAlignment="Center"/>
+                                    </Grid>
+
+                                    <Grid Margin="0,7,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="62"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="52"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Fade out" Style="{StaticResource Body}" VerticalAlignment="Center"/>
+                                        <Slider Grid.Column="1" x:Name="BlockFadeOut" Minimum="0" Maximum="4000" Value="0"
+                                                VerticalAlignment="Center" ValueChanged="BlockFade_Changed"/>
+                                        <TextBlock Grid.Column="2" x:Name="BlockFadeOutLabel" Text="0 ms"
+                                                   Style="{StaticResource Hint}" HorizontalAlignment="Right"
+                                                   VerticalAlignment="Center"/>
+                                    </Grid>
+
+                                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                        <CheckBox x:Name="BlockMute" Content="Mute" Click="BlockMute_Changed"/>
+                                        <Button Style="{StaticResource GhostButton}" Content="Trim start to playhead"
+                                                Margin="14,0,0,0" Padding="9,5" FontSize="11"
+                                                Click="TrimToPlayhead_Click"
+                                                ToolTip="Move the block's in point up to the playhead"/>
+                                    </StackPanel>
+
+                                    <StackPanel Orientation="Horizontal" Margin="0,7,0,0">
+                                        <Button Style="{StaticResource GhostButton}" Content="Trim silence"
+                                                Padding="9,5" FontSize="11" Click="TrimSilence_Click"
+                                                ToolTip="Pull the in and out points in to where the sound actually starts and stops"/>
+                                        <Button Style="{StaticResource GhostButton}" Content="Normalise"
+                                                Margin="7,0,0,0" Padding="9,5" FontSize="11" Click="Normalise_Click"
+                                                ToolTip="Lift this block to the level set in Settings ▸ Clipping"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- presets and the add box -->
+                            <StackPanel Grid.Row="2" Margin="0,0,0,9">
+                                <TextBlock Text="PRESET" Style="{StaticResource SectionLabel}"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ComboBox x:Name="PresetBox" SelectionChanged="Preset_Changed"/>
+                                    <Button Grid.Column="1" Style="{StaticResource AccentButton}" Content="Apply"
+                                            Margin="7,0,0,0" Padding="14,7" Click="ApplyPreset_Click"/>
+                                </Grid>
+                                <TextBlock x:Name="PresetBlurb" Style="{StaticResource Hint}" FontSize="10.5"
+                                           Margin="1,6,0,0"/>
+
+                                <TextBlock Text="ADD AN EFFECT" Style="{StaticResource SectionLabel}" Margin="0,12,0,8"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ComboBox x:Name="AddFxBox" SelectionChanged="AddFxBox_Changed"/>
+                                    <Button Grid.Column="1" Style="{StaticResource GhostButton}" Content="Add"
+                                            Margin="7,0,0,0" Padding="16,7" Click="AddFx_Click"/>
+                                </Grid>
+                                <TextBlock x:Name="AddFxBlurb" Style="{StaticResource Hint}" FontSize="10.5"
+                                           Margin="1,6,0,0"/>
+                            </StackPanel>
+
+                            <!-- the rack -->
+                            <Grid Grid.Row="3">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <Grid Grid.Row="0" Margin="0,0,0,7">
+                                    <TextBlock x:Name="RackTitle" Text="CHAIN" Style="{StaticResource SectionLabel}"
+                                               Margin="0"/>
+                                    <Button Style="{StaticResource GhostButton}" Content="Clear" Padding="9,3"
+                                            FontSize="10.5" HorizontalAlignment="Right" VerticalAlignment="Top"
+                                            Margin="0,-4,0,0" Click="ClearChain_Click"/>
+                                </Grid>
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                                              HorizontalScrollBarVisibility="Disabled">
+                                    <StackPanel x:Name="RackPanel"/>
+                                </ScrollViewer>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- ═══════════════ TRANSPORT ═══════════════ -->
+                <Border Grid.Row="2" Margin="22,12,22,0" Style="{StaticResource Panel}" Background="#66130F22"
+                        Padding="14,10">
                     <Grid>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
-                            <Button Style="{StaticResource GhostButton}" Content="Export MP3" Padding="15,8"
-                                    Click="ExportMp3_Click"/>
-                            <Button Style="{StaticResource GhostButton}" Content="Export OGG" Margin="8,0,0,0"
-                                    Padding="15,8" Click="ExportOgg_Click"/>
-                            <Button Style="{StaticResource DangerButton}" Content="Delete clip" Margin="8,0,0,0"
-                                    Padding="15,8" Click="Delete_Click"/>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Button Grid.Column="0" x:Name="PlayBtn" Style="{StaticResource AccentButton}"
+                                Click="Play_Click" Padding="18,9" MinWidth="132">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock x:Name="PlayGlyph" Text="&#xE768;" FontFamily="Segoe MDL2 Assets"
+                                           FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBlock x:Name="PlayLabel" Text="Play mix" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Grid.Column="1" Style="{StaticResource GhostButton}" Content="&#xE892;"
+                                FontFamily="Segoe MDL2 Assets" FontSize="12" Margin="8,0,0,0" Padding="13,9"
+                                Click="ToStart_Click" ToolTip="Playhead back to the start (Home)"/>
+
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="16,0,0,0" VerticalAlignment="Center">
+                            <TextBlock x:Name="PositionText" Style="{StaticResource H2}" Text="0:00.00"
+                                       FontFamily="Consolas" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="LengthText" Style="{StaticResource Hint}" Text="  / 0:00.00"
+                                       FontFamily="Consolas" VerticalAlignment="Center"/>
                         </StackPanel>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                            <Button Style="{StaticResource GhostButton}" Content="Cancel" Padding="18,8"
-                                    Click="Cancel_Click"/>
-                            <Button Style="{StaticResource AccentButton}" Content="Save clip" Margin="9,0,0,0"
-                                    Padding="26,8" Click="Save_Click"/>
+
+                        <TextBlock Grid.Column="3" x:Name="StatusText" Style="{StaticResource Hint}"
+                                   VerticalAlignment="Center" Margin="20,0,12,0" TextTrimming="CharacterEllipsis"/>
+
+                        <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center">
+                            <CheckBox x:Name="LoopPreviewChk" Content="Loop preview" Margin="0,0,16,0"/>
+                            <CheckBox x:Name="LoopChk" Content="Loop when fired"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- ═══════════════ FOOTER ═══════════════ -->
+                <Border Grid.Row="3" Background="#800B0813" BorderBrush="{StaticResource StrokeSoft}"
+                        BorderThickness="0,1,0,0" Padding="22,13" CornerRadius="0,0,12,12" Margin="0,12,0,0">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" Orientation="Horizontal">
+                            <TextBlock Text="Category" Style="{StaticResource Hint}" VerticalAlignment="Center"
+                                       Margin="0,0,8,0"/>
+                            <ComboBox x:Name="CategoryBox" Width="150" VerticalAlignment="Center"/>
+                            <TextBlock Text="Hotkey" Style="{StaticResource Hint}" VerticalAlignment="Center"
+                                       Margin="16,0,8,0"/>
+                            <Button x:Name="HotkeyBtn" Style="{StaticResource GhostButton}" Padding="12,7"
+                                    Content="Not set" Click="Hotkey_Click"/>
+                            <TextBlock Text="Pad level" Style="{StaticResource Hint}" VerticalAlignment="Center"
+                                       Margin="16,0,8,0"/>
+                            <Slider x:Name="PadVolume" Width="104" Minimum="0" Maximum="2" Value="1"
+                                    VerticalAlignment="Center" ValueChanged="PadVolume_Changed"
+                                    ToolTip="How loud this pad fires, on top of the master volume"/>
+                            <TextBlock x:Name="PadVolumeLabel" Text="100%" Style="{StaticResource Hint}"
+                                       VerticalAlignment="Center" Margin="8,0,0,0" Width="38"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2" Orientation="Horizontal">
+                            <Button Style="{StaticResource GhostButton}" Content="Export…" Padding="14,8"
+                                    Click="Export_Click"/>
+                            <Button Style="{StaticResource DangerButton}" Content="Delete clip" Margin="7,0,0,0"
+                                    Padding="14,8" Click="Delete_Click"/>
+                            <Button Style="{StaticResource GhostButton}" Content="Cancel" Margin="14,0,0,0"
+                                    Padding="16,8" Click="Cancel_Click"/>
+                            <Button Style="{StaticResource GhostButton}" Content="Save as new clip" Margin="7,0,0,0"
+                                    Padding="14,8" Click="SaveAsNew_Click"
+                                    ToolTip="Keep the original pad and add the edit as another one"/>
+                            <Button Style="{StaticResource AccentButton}" Content="Save clip" Margin="7,0,0,0"
+                                    Padding="24,8" Click="Save_Click"/>
                         </StackPanel>
                     </Grid>
                 </Border>

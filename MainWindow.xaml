@@ -408,6 +408,9 @@
                         <StackPanel Grid.Row="3" Margin="0,12,0,0">
                             <Border Height="1" Background="{StaticResource StrokeSoft}" Margin="0,0,0,10"/>
                             <TextBlock x:Name="StorageLabel" Text="—" Style="{StaticResource Hint}"/>
+                            <Button Style="{StaticResource GhostButton}" Content="Import audio as pads" Margin="0,8,0,0"
+                                    HorizontalAlignment="Stretch" Click="Import_Click"
+                                    ToolTip="Bring WAV, MP3, OGG, FLAC, M4A or WMA files in as clips (Ctrl+I)"/>
                             <Button Style="{StaticResource GhostButton}" Content="Open clips folder" Margin="0,8,0,0"
                                     HorizontalAlignment="Stretch" Click="OpenFolder_Click"/>
                         </StackPanel>

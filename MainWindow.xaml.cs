@@ -79,7 +79,7 @@ public partial class MainWindow : Window
         Core.Hotkeys.RegistrationFailed += (action, gesture) => Dispatcher.BeginInvoke(() =>
             ShowToast("Hotkey unavailable", $"{HotkeyService.Pretty(gesture)} is taken by another app.", true));
 
-        TitleHint.ToolTip = "Ctrl+,  settings      Ctrl+F  search      Ctrl+N  new category      Ctrl+R  pause capture";
+        TitleHint.ToolTip = "Ctrl+,  settings      Ctrl+F  search      Ctrl+N  new category      Ctrl+I  import audio      Ctrl+R  pause capture";
 
         SetupTray();
         ApplySettings(startCapture: true);
@@ -256,6 +256,7 @@ public partial class MainWindow : Window
         else if (ctrl && e.Key == Key.F) { SearchBox.Focus(); SearchBox.SelectAll(); e.Handled = true; }
         else if (ctrl && e.Key == Key.N) { AddCategory(); e.Handled = true; }
         else if (ctrl && e.Key == Key.R) { ToggleCapture(); e.Handled = true; }
+        else if (ctrl && e.Key == Key.I) { Import_Click(null, null); e.Handled = true; }
         else if (ctrl && e.Key == Key.A && !SearchBox.IsKeyboardFocusWithin)
         {
             SelectAllVisible();
@@ -329,6 +330,67 @@ public partial class MainWindow : Window
         ShowToast("Clipped", $"{clip.Name} · {clip.DurationText}");
 
         if (S.OpenEditorAfterClip) EditClip(clip);
+    }
+
+    /// <summary>
+    /// Brings audio files in from disk as pads. Anything Windows can decode is
+    /// converted to the app's 48 kHz stereo format on the way in, so an imported
+    /// file behaves exactly like something you clipped.
+    /// </summary>
+    private void Import_Click(object sender, RoutedEventArgs e)
+    {
+        var dlg = new Microsoft.Win32.OpenFileDialog
+        {
+            Title = "Import audio as pads",
+            Multiselect = true,
+            Filter = "Audio files|*.wav;*.mp3;*.ogg;*.flac;*.m4a;*.aac;*.wma;*.aiff;*.aif|All files|*.*",
+            InitialDirectory = Directory.Exists(S.ExportFolder)
+                ? S.ExportFolder
+                : Environment.GetFolderPath(Environment.SpecialFolder.MyMusic)
+        };
+        if (dlg.ShowDialog(this) != true) return;
+
+        var categoryId = _filter == Filter.Category ? _filterCategoryId : S.DefaultCategoryId;
+        var added = 0;
+        var failed = new List<string>();
+        Clip last = null;
+
+        foreach (var path in dlg.FileNames)
+        {
+            try
+            {
+                var samples = WavIO.Read(path);
+                if (samples.Length == 0) { failed.Add(Path.GetFileName(path) + " — no audio in it"); continue; }
+
+                var name = Path.GetFileNameWithoutExtension(path);
+                if (Core.Library.Clips.Any(c => string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase)))
+                    name = Core.Library.NextClipName(name);
+
+                last = Core.Library.AddClip(samples, name, categoryId);
+                added++;
+            }
+            catch (Exception ex)
+            {
+                AppPaths.Log($"Import failed for {path}: {ex}");
+                failed.Add(Path.GetFileName(path) + " — " + ex.Message);
+            }
+        }
+
+        if (added > 0)
+        {
+            _lastClip = last;
+            RefreshBoard();
+            UpdateStorageLabel();
+            RegisterHotkeys();
+            ShowToast("Imported", added == 1 ? last.Name + " · " + last.DurationText : added + " files added");
+        }
+
+        if (failed.Count > 0)
+            Prompt.Info(this, "Some files could not be imported",
+                string.Join(Environment.NewLine, failed) +
+                Environment.NewLine + Environment.NewLine +
+                "VoidClip reads whatever Windows Media Foundation can decode. Convert anything "
+                + "unusual or DRM-protected to WAV first.");
     }
 
     // ══════════════════════════════════════════════════════════

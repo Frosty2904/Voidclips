@@ -327,30 +327,49 @@ public static class Dsp
         }
     }
 
-    /// <summary>Strip leading/trailing audio below the threshold, keeping a small pad.</summary>
-    public static float[] TrimSilence(float[] data, int channels, int rate, double thresholdDb, int padMs = 120)
+    /// <summary>
+    /// Finds where the audible part of a range starts and ends, as absolute sample
+    /// indices into <paramref name="data"/>. False when the whole range is silence.
+    /// </summary>
+    public static bool SilenceBounds(float[] data, int offset, int count, int channels, int rate,
+                                     double thresholdDb, int padMs, out int first, out int last)
     {
-        if (data.Length == 0) return data;
+        first = offset;
+        last = offset + count;
+        if (count <= 0 || channels <= 0) return false;
+
         var thr = (float)Math.Pow(10, thresholdDb / 20.0);
-        var frames = data.Length / channels;
+        var frames = count / channels;
         var win = Math.Max(1, rate / 100);   // 10 ms analysis window
 
         int firstF = -1, lastF = -1;
         for (int f = 0; f < frames; f += win)
         {
             var n = Math.Min(win, frames - f) * channels;
-            if (Rms(data, f * channels, n) > thr) { if (firstF < 0) firstF = f; lastF = f + win; }
+            if (Rms(data, offset + f * channels, n) > thr) { if (firstF < 0) firstF = f; lastF = f + win; }
         }
-        if (firstF < 0) return data;   // all silent — leave untouched
+        if (firstF < 0) return false;
 
         var pad = padMs * rate / 1000;
         firstF = Math.Max(0, firstF - pad);
         lastF = Math.Min(frames, lastF + pad);
 
-        var outLen = (lastF - firstF) * channels;
+        first = offset + firstF * channels;
+        last = offset + lastF * channels;
+        return last > first;
+    }
+
+    /// <summary>Strip leading/trailing audio below the threshold, keeping a small pad.</summary>
+    public static float[] TrimSilence(float[] data, int channels, int rate, double thresholdDb, int padMs = 120)
+    {
+        if (data.Length == 0) return data;
+        if (!SilenceBounds(data, 0, data.Length, channels, rate, thresholdDb, padMs, out var first, out var last))
+            return data;   // all silent — leave untouched
+
+        var outLen = last - first;
         if (outLen <= 0 || outLen >= data.Length) return data;
         var res = new float[outLen];
-        Array.Copy(data, firstF * channels, res, 0, outLen);
+        Array.Copy(data, first, res, 0, outLen);
         return res;
     }
 
